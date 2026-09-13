@@ -1,74 +1,57 @@
-# AI Driven Web App Template
+# 想いの方角
 
-AIと人間でWebアプリを継続開発するための標準テンプレートです。
+大切な人、故郷、思い出の場所、祈りたい場所など、自分にとって意味のある場所の方角を静かに向くためのWebアプリです。
 
-コードの雛形だけでなく、設計、Issue、Branch、Pull Request、CI、Cloudflare、Asset、Security、SEO、リリース、振り返りまでを一つのGolden Pathとして管理します。
+## コンセプト
 
-## 基本原則
+このアプリは、場所を集めたり、人と共有したりするためのものではありません。
 
-1. 設計変更 → 設計書 → Issue → 実装 → テスト → Pull Request
-2. 1 Issue・1 Branch・1 Pull Request
-3. mainを直接変更しない
-4. 通常PR＋人間承認ゲートを標準とする
-5. Previewでスマホ確認してからProductionへ反映する
-6. ProductionとPreviewのデータ・Bindingsを分離する
-7. 失敗をKnown Issue、手順、テンプレート、CIへ順に昇格する
-8. GitHubのmainを承認済み設計の正本とする
-9. 設計書ごとの責務を分け、同じ事実を複数文書へ重複管理しない
+「いま自分がいる場所から、大切な場所はどちらにあるのか」を知り、その方向へ身体を向けるための小さな道具を目指します。
 
-## Golden Path
+- SNS共有を前提にしない
+- いいね、フォロー、ランキングを作らない
+- 登録地点は最大5か所
+- 登録地点・表示名はMVPでは端末内だけに保存する
+- Google Maps APIはMVPでは使わない
+- 国内・海外の地点を同じ考え方で扱う
 
-アイデア → 企画 → 要件 → Architecture → UI設計 → Issue → Branch → 実装 → CI → Preview → 人間レビュー → Merge → Production → SEO・Security・Analytics確認 → 振り返り
+## MVPの基本フロー
 
-## 使い始めるとき
+```text
+Google Mapsで場所を探す
+  -> 共有リンク等を「想いの方角」へ渡す
+  -> 地点を読み取る
+  -> 本人だけが分かる名前を付ける
+  -> 最大5か所を端末内へ保存
+  -> 保存地点を選ぶ
+  -> 現在地から方角を計算
+  -> スマートフォンをその方向へ向ける
+```
 
-- `docs/00_PROJECT_OVERVIEW.md` のCHANGE-MEを置き換える
-- `docs/01_REQUIREMENTS.md` に機能・非機能要件を定義する
-- `docs/02_SYSTEM_ARCHITECTURE.md` でHosting、外部Service、データ経路、環境分離を設計する
-- `docs/03_APPLICATION_ARCHITECTURE.md` でModule責務、State、Data、IFを設計する
-- `docs/04_REPOSITORY_STRUCTURE.md` を実際のRepository treeへ合わせる
-- 重要な技術判断は `docs/adr/` に残す
-- UIの認識差が出る場合は `docs/design/` でVisual Designを作る
-- CloudflareのHello World Deployを先に通す
-- 必要なIssueをテンプレートから作る
-- Release Checklistをプロジェクトに合わせて更新する
+Google Mapsの短縮共有URLから緯度・経度を安定して取得できるかは、最初のPoCで検証します。失敗時に推測座標を登録しないことを要件とします。
 
-## 設計書の管理
+## 設計方針
 
-設計書の入口は [Design Documentation Index](docs/README.md) とする。
+詳細は以下を正本とします。
 
-- 承認済み最新設計: GitHub `main`
-- 提案中設計: PR Branch
-- 視覚レビュー: `docs/design/` + 必要に応じDesign Preview
-- 設計判断履歴: `docs/adr/`
-- 構築キャプチャー・外部資料: Google Drive
-- Chat上の確定事項: 必ず該当設計書へ反映
-
-詳細は [Design Management](docs/05_DESIGN_MANAGEMENT.md) を参照する。
-
-## 文書
-
-### Core Design
-
-- [Design Documentation Index](docs/README.md)
 - [Project Overview](docs/00_PROJECT_OVERVIEW.md)
 - [Requirements](docs/01_REQUIREMENTS.md)
 - [System Architecture](docs/02_SYSTEM_ARCHITECTURE.md)
 - [Application Architecture](docs/03_APPLICATION_ARCHITECTURE.md)
-- [Repository Structure](docs/04_REPOSITORY_STRUCTURE.md)
-- [Design Management](docs/05_DESIGN_MANAGEMENT.md)
-- [Requirements Traceability](docs/06_REQUIREMENTS_TRACEABILITY.md)
-- [Visual Design](docs/design/README.md)
+- [Design Documentation Index](docs/README.md)
 - [Architecture Decision Records](docs/adr/README.md)
 
-### Development / Operations
+主な初期判断:
 
-- [Git Workflow](docs/GIT_WORKFLOW.md)
-- [Asset Workflow](docs/ASSET_WORKFLOW.md)
-- [Cloudflare Setup](docs/CLOUDFLARE_SETUP.md)
-- [Troubleshooting](docs/TROUBLESHOOTING.md)
-- [Release Checklist](docs/RELEASE_CHECKLIST.md)
+- [ADR-0001: MVPではGoogle Maps APIを組み込まない](docs/adr/ADR-0001-google-maps-api-not-used-for-mvp.md)
+- [ADR-0002: 保存先は端末内のみ、最大5か所とする](docs/adr/ADR-0002-local-only-five-places.md)
 
-## v0.1の位置づけ
+## 開発のGolden Path
 
-朝マズメ潮ナビで得た実証結果を基にした初版です。良かった「GitHub設計正本・HTML設計Preview・設計先行」は継承し、設計書の責務分離、ADR、要件トレーサビリティを追加しています。別ジャンルのアプリで検証し、3〜5アプリで繰り返し有効だったものを標準へ昇格します。
+設計変更 → 設計書 → Issue → Branch → 実装 → Test → Pull Request → Preview実機確認 → Human approval → Merge → Production
+
+原則としてmainを直接変更せず、1 Issue・1 Branch・1 Pull Requestで進めます。
+
+## Repository
+
+`ha-rookie/omoi-no-hougaku`

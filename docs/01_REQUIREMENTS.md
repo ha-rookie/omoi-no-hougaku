@@ -6,23 +6,42 @@
 
 ## 2. 対象ユーザー
 
-CHANGE-ME
+- 遠く離れた大切な人や場所の方向を知りたい人
+- 故郷、思い出の場所、神社、墓所などを静かに思いたい人
+- 自分の想いをSNS等で共有せず個人的に使いたい人
+- 日本国内・海外を問わず地点を登録したい人
 
 ## 3. 解決する課題
 
-CHANGE-ME
+地図アプリでは目的地までの移動経路は分かるが、「いま自分がいる場所から、大切な場所はどちらの方向か」を静かに確認する用途には最適化されていない。
+
+本アプリは、場所の大量収集や共有ではなく、少数の大切な地点を登録し、その方角を向く体験を提供する。
 
 ## 4. 利用シナリオ
 
 | ID | シナリオ | 主体 | 成功条件 |
 | --- | --- | --- | --- |
-| REQ-001 | CHANGE-ME | CHANGE-ME | CHANGE-ME |
+| REQ-001 | Google Mapsで見つけた場所を登録する | User | 共有情報から目的地点を確認して登録できる |
+| REQ-002 | 登録地点へ名前を付ける | User | 本人だけが分かる任意の表示名で保存できる |
+| REQ-003 | 保存済みの場所を選ぶ | User | 最大5件から目的地点を選択できる |
+| REQ-004 | 目的地の方角を確認する | User | 現在地から目的地までの方角が表示される |
+| REQ-005 | スマートフォンを目的地の方向へ向ける | User | 端末の向きと目的地方向の関係を理解できる |
+| REQ-006 | 登録地点を削除する | User | 不要な地点を端末内から削除できる |
 
 ## 5. 機能要件
 
 | ID | 要件 | 優先度 | 受け入れ条件 | 状態 |
 | --- | --- | --- | --- | --- |
-| REQ-001 | CHANGE-ME | Must | CHANGE-ME | Planned |
+| REQ-001 | Google Mapsの共有リンク等を入力して地点登録できる | Must | 主要な共有パターンをPoCし、緯度経度を誤推測せず取得または取得失敗を明示できる | Planned |
+| REQ-002 | 地点に任意の表示名を設定できる | Must | 空文字を除き、ユーザーが入力した名称で保存できる | Planned |
+| REQ-003 | 地点を端末内に最大5か所保存できる | Must | 6件目は自動上書きせず、削除が必要であることを示す | Planned |
+| REQ-004 | 保存済み地点を一覧表示・選択・削除できる | Must | 保存内容とUIが一致し、削除後に復活しない | Planned |
+| REQ-005 | ブラウザの位置情報から現在地を取得できる | Must | 許可時に緯度経度を取得し、拒否/失敗時は理由を表示する | Planned |
+| REQ-006 | 現在地と目的地から初期方位角を計算できる | Must | 既知座標のテストケースで期待値範囲に入る | Planned |
+| REQ-007 | 端末の向きを利用して目的地方向を示せる | Must | 対応端末で方向の変化に追随し、権限が必要な場合は明示する | Planned |
+| REQ-008 | Google Mapsを外部で開ける | Should | 検索・地点確認のためGoogle Mapsへ遷移できる | Planned |
+| REQ-009 | PWAとしてホーム画面追加できる | Could | 採用決定後にmanifest/service workerの受入条件を定義する | Deferred |
+| REQ-010 | Google Mapsから共有先として直接受け取れる | Could | Android等の対応環境でWeb Share Targetを検証する | Deferred |
 
 状態例: Planned / Active / Replaced / Deferred / Removed
 
@@ -30,38 +49,55 @@ CHANGE-ME
 
 | ID | 分類 | 要件 | 測定・確認方法 |
 | --- | --- | --- | --- |
-| NFR-001 | Performance | CHANGE-ME | CHANGE-ME |
-| NFR-002 | Security | CHANGE-ME | CHANGE-ME |
-| NFR-003 | Availability | CHANGE-ME | CHANGE-ME |
-| NFR-004 | Accessibility | CHANGE-ME | CHANGE-ME |
-| NFR-005 | Cost | CHANGE-ME | CHANGE-ME |
+| NFR-001 | Privacy | 登録地点・表示名をMVPではサーバーDBへ保存しない | Network確認、実装レビュー |
+| NFR-002 | Security | 入力URL・表示名を未検証のままHTMLへ挿入しない | Static review / Security regression |
+| NFR-003 | Accuracy | 地点解析に失敗した場合、推測座標を正常値として扱わない | 異常系テスト |
+| NFR-004 | Accessibility | 方角を色だけで表現せず、文字・角度等でも理解可能にする | Manual review |
+| NFR-005 | Cost | MVPのGoogle Maps Platform API利用料を0円とする | API未使用を確認 |
+| NFR-006 | Performance | 初期画面と保存済み地点一覧をモバイル回線でも軽量に表示する | Lighthouse等で確認 |
+| NFR-007 | Compatibility | Androidスマートフォンを主要実機確認対象とする | 実機テスト |
+| NFR-008 | Privacy | Analyticsを導入しても登録地点名・緯度経度をイベントへ送信しない | Analytics event review |
 
 ## 7. データ・外部情報要件
 
-- データ源: CHANGE-ME
-- 更新頻度: CHANGE-ME
-- 正確性・欠損時の扱い: CHANGE-ME
-- 利用条件・規約: CHANGE-ME
-- 個人情報・秘密情報: CHANGE-ME
+- データ源: ユーザーが入力/共有する地点情報、ブラウザGeolocation、Device Orientation
+- 外部地図: Google Mapsは外部アプリ/サイトとして利用する
+- Google Maps Platform API: MVPでは利用しない
+- 更新頻度: 地点情報はユーザー操作時のみ更新
+- 正確性・欠損時の扱い: 座標が検証できない場合は保存させず、取得失敗を明示する
+- 利用条件・規約: Google Maps共有リンク解析の可否・安定性をPoCし、Google公式仕様と利用条件を確認する
+- 個人情報・秘密情報: 表示名と登録地点はセンシティブ情報になり得る。原則として端末内に保持する
 
 外部仕様や現在値は推測で確定しない。必要に応じて一次情報または公式仕様を確認する。
 
 ## 8. 制約
 
-- 技術制約: CHANGE-ME
-- コスト制約: CHANGE-ME
-- 運用制約: CHANGE-ME
-- 法務・規約上の制約: CHANGE-ME
+- 技術制約: Google Maps APIをMVPでは使わない
+- 技術制約: `maps.app.goo.gl` 等の短縮URLをブラウザのみで解決できるかはPoC未完了
+- コスト制約: MVPは外部有料APIなしを基本とする
+- 運用制約: DB・ユーザーアカウントを持たない
+- プライバシー制約: 地点情報を外部送信する機能を追加する場合は人間承認を必須とする
+- 法務・規約上の制約: Google Mapsの非公開内部URL形式へ恒久依存しないことを目標とする
 
 ## 9. Out of Scope
 
-CHANGE-ME
+- SNS共有、いいね、フォロー、ランキング
+- 他ユーザーの位置検索・追跡
+- 電話番号・SNSアカウント・人名からの現在地取得
+- ログイン、クラウド同期
+- 登録地点のサーバーDB保存
+- Google Maps / Places APIの組み込み
+- 保存件数の無制限化
 
 ## 10. 未決事項
 
 | ID | 論点 | 決定者 | 期限/条件 | 状態 |
 | --- | --- | --- | --- | --- |
-| TBD-001 | CHANGE-ME | Human | CHANGE-ME | Open |
+| TBD-001 | Google Maps短縮共有URLから座標を安定取得できるか | Human | PoC結果確認後 | Open |
+| TBD-002 | クライアントのみで短縮URL解決できない場合、Cloudflare Worker等を使うか | Human | TBD-001失敗時 | Open |
+| TBD-003 | 地点解析の代替入力を何にするか | Human | PoC結果確認後 | Open |
+| TBD-004 | PWA/Web Share TargetをMVPに含めるか | Human | 基本フロー完成後 | Open |
+| TBD-005 | 保存地点の並び順を登録順固定とするか | Human | UI設計時 | Open |
 
 未決事項をAIが推測で確定しない。
 

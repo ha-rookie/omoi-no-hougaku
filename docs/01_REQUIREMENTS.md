@@ -32,7 +32,7 @@
 
 | ID | 要件 | 優先度 | 受け入れ条件 | 状態 |
 | --- | --- | --- | --- | --- |
-| REQ-001 | Google Mapsの共有リンク等を入力して地点登録できる | Must | 主要な共有パターンをPoCし、緯度経度を誤推測せず取得または取得失敗を明示できる | Planned |
+| REQ-001 | Google Mapsの共有リンク等を入力して地点登録できる | Must | 主要な共有パターンをPoCし、緯度経度を誤推測せず取得または取得失敗を明示できる | Active |
 | REQ-002 | 地点に任意の表示名を設定できる | Must | 空文字を除き、ユーザーが入力した名称で保存できる | Planned |
 | REQ-003 | 地点を端末内に最大5か所保存できる | Must | 6件目は自動上書きせず、削除が必要であることを示す | Planned |
 | REQ-004 | 保存済み地点を一覧表示・選択・削除できる | Must | 保存内容とUIが一致し、削除後に復活しない | Planned |
@@ -42,8 +42,6 @@
 | REQ-008 | Google Mapsを外部で開ける | Should | 検索・地点確認のためGoogle Mapsへ遷移できる | Planned |
 | REQ-009 | PWAとしてホーム画面追加できる | Could | 採用決定後にmanifest/service workerの受入条件を定義する | Deferred |
 | REQ-010 | Google Mapsから共有先として直接受け取れる | Could | Android等の対応環境でWeb Share Targetを検証する | Deferred |
-
-状態例: Planned / Active / Replaced / Deferred / Removed
 
 ## 6. 非機能要件
 
@@ -57,26 +55,26 @@
 | NFR-006 | Performance | 初期画面と保存済み地点一覧をモバイル回線でも軽量に表示する | Lighthouse等で確認 |
 | NFR-007 | Compatibility | Androidスマートフォンを主要実機確認対象とする | 実機テスト |
 | NFR-008 | Privacy | Analyticsを導入しても登録地点名・緯度経度をイベントへ送信しない | Analytics event review |
+| NFR-009 | Privacy | 短縮URLのServer処理は一時展開に限定し、入力URL・取得座標を永続保存またはApplication logへ出力しない | Code review / runtime review |
 
 ## 7. データ・外部情報要件
 
 - データ源: ユーザーが入力/共有する地点情報、ブラウザGeolocation、Device Orientation
 - 外部地図: Google Mapsは外部アプリ/サイトとして利用する
 - Google Maps Platform API: MVPでは利用しない
+- 短縮URL: `maps.app.goo.gl` は同一サイトのPages Functionで一時展開する
 - 更新頻度: 地点情報はユーザー操作時のみ更新
 - 正確性・欠損時の扱い: 座標が検証できない場合は保存させず、取得失敗を明示する
-- 利用条件・規約: Google Maps共有リンク解析の可否・安定性をPoCし、Google公式仕様と利用条件を確認する
-- 個人情報・秘密情報: 表示名と登録地点はセンシティブ情報になり得る。原則として端末内に保持する
-
-外部仕様や現在値は推測で確定しない。必要に応じて一次情報または公式仕様を確認する。
+- 個人情報・秘密情報: 表示名と登録地点はセンシティブ情報になり得る。永続保存は端末内を原則とし、短縮URL展開時だけ共有URLがServer処理を通る
 
 ## 8. 制約
 
 - 技術制約: Google Maps APIをMVPでは使わない
-- 技術制約: `maps.app.goo.gl` 等の短縮URLをブラウザのみで解決できるかはPoC未完了
+- 技術制約: Android Chrome実機でClient-only短縮URL解決は不成立確認済み
+- 技術制約: Pages Functionは短縮URL展開専用とし、汎用URL proxyにしない
 - コスト制約: MVPは外部有料APIなしを基本とする
 - 運用制約: DB・ユーザーアカウントを持たない
-- プライバシー制約: 地点情報を外部送信する機能を追加する場合は人間承認を必須とする
+- プライバシー制約: 地点URLのServer送信範囲は短縮URL展開だけに限定する
 - 法務・規約上の制約: Google Mapsの非公開内部URL形式へ恒久依存しないことを目標とする
 
 ## 9. Out of Scope
@@ -93,13 +91,11 @@
 
 | ID | 論点 | 決定者 | 期限/条件 | 状態 |
 | --- | --- | --- | --- | --- |
-| TBD-001 | Google Maps短縮共有URLから座標を安定取得できるか | Human | PoC結果確認後 | Open |
-| TBD-002 | クライアントのみで短縮URL解決できない場合、Cloudflare Worker等を使うか | Human | TBD-001失敗時 | Open |
-| TBD-003 | 地点解析の代替入力を何にするか | Human | PoC結果確認後 | Open |
+| TBD-001 | Google Maps短縮共有URLから座標を安定取得できるか | Human | Pages Function実機PoC完了後 | Open |
+| TBD-002 | Client-only失敗時にServer resolverを使うか | Human | Android実機結果確認後 | Resolved: Pages Function採用 |
+| TBD-003 | 地点解析の代替入力を何にするか | Human | Resolver失敗ケース整理後 | Open |
 | TBD-004 | PWA/Web Share TargetをMVPに含めるか | Human | 基本フロー完成後 | Open |
 | TBD-005 | 保存地点の並び順を登録順固定とするか | Human | UI設計時 | Open |
-
-未決事項をAIが推測で確定しない。
 
 ## 11. 要件変更管理
 

@@ -9,12 +9,18 @@ const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const MAX_REDIRECTS = 6;
 
 export class MapResolveError extends Error {
-  constructor(code, message, status = 400) {
+  constructor(code, message, status = 400, details = undefined) {
     super(message);
     this.name = 'MapResolveError';
     this.code = code;
     this.status = status;
+    this.details = details;
   }
+}
+
+function pathClass(url) {
+  const first = url.pathname.split('/').filter(Boolean)[0] ?? 'root';
+  return `/${first}`;
 }
 
 export function validateCoordinates(latitude, longitude) {
@@ -39,32 +45,55 @@ function parseCoordinateText(value) {
   return validateCoordinates(match[1], match[2]);
 }
 
-function assertHttpsGoogleHost(url, { shortOnly = false } = {}) {
+function assertHttpsGoogleHost(url, { shortOnly = false, redirectCount } = {}) {
+  const safeDetails = {
+    host: url.hostname.toLowerCase(),
+    pathClass: pathClass(url),
+    ...(Number.isInteger(redirectCount) ? { redirectCount } : {}),
+  };
+
   if (url.protocol !== 'https:') {
-    throw new MapResolveError('UNSUPPORTED_URL', 'HTTPSのGoogle Maps URLのみ対応します');
+    throw new MapResolveError(
+      'UNSUPPORTED_URL',
+      'HTTPSのGoogle Maps URLのみ対応します',
+      400,
+      safeDetails
+    );
   }
 
   const host = url.hostname.toLowerCase();
   if (!ALLOWED_GOOGLE_HOSTS.has(host)) {
-    throw new MapResolveError('REDIRECT_HOST_NOT_ALLOWED', 'Google Maps以外のホストへは接続しません', 502);
+    throw new MapResolveError(
+      'REDIRECT_HOST_NOT_ALLOWED',
+      'Google Maps以外のホストへは接続しません',
+      502,
+      safeDetails
+    );
   }
 
   if (shortOnly && host !== SHORT_HOST) {
-    throw new MapResolveError('SHORT_URL_REQUIRED', 'Google Mapsの短縮共有URLを入力してください');
+    throw new MapResolveError(
+      'SHORT_URL_REQUIRED',
+      'Google Mapsの短縮共有URLを入力してください',
+      400,
+      safeDetails
+    );
   }
 
   if (host === SHORT_HOST) return;
 
-  // maps.app.goo.gl の展開途中では maps.google.com/?... のような
-  // ルートパス形式を経由することがある。Google Maps専用ホストに限って
-  // ルートパスを許可し、その後のredirectを追跡する。
-  if (host === 'maps.google.com') {
-    if (url.pathname === '/' || url.pathname.startsWith('/maps')) return;
-    throw new MapResolveError('UNSUPPORTED_URL', 'Google Maps URLとして確認できません', 502);
-  }
+  // Google Maps専用ホスト maps.google.com は、短縮URLの展開途中で
+  // / や /maps 以外を経由する場合があるため、host自体を境界として許可する。
+  if (host === 'maps.google.com') return;
 
+  // google.com / www.google.com は汎用ホストなので /maps 配下だけを許可する。
   if (!url.pathname.startsWith('/maps')) {
-    throw new MapResolveError('UNSUPPORTED_URL', 'Google Maps URLとして確認できません', 502);
+    throw new MapResolveError(
+      'UNSUPPORTED_URL',
+      'Google Maps URLとして確認できません',
+      502,
+      safeDetails
+    );
   }
 }
 
@@ -75,7 +104,7 @@ export function assertShortGoogleMapsUrl(rawUrl) {
   } catch {
     throw new MapResolveError('INVALID_URL', 'URLとして読み取れません');
   }
-  assertHttpsGoogleHost(url, { shortOnly: true });
+  assertHttpsGoogleHost(url, { shortOnly: true, redirectCount: 0 });
   return url;
 }
 
@@ -136,23 +165,38 @@ export async function resolveShortGoogleMapsUrl(rawUrl, fetchImpl = globalThis.f
         headers: { Accept: 'text/html,application/xhtml+xml' },
       });
     } catch {
-      throw new MapResolveError('UPSTREAM_FETCH_FAILED', 'Google Maps短縮URLを取得できませんでした', 502);
+      throw new MapResolveError(
+        'UPSTREAM_FETCH_FAILED',
+        'Google Maps短縮URLを取得できませんでした',
+        502,
+        { host: current.hostname.toLowerCase(), pathClass: pathClass(current), redirectCount }
+      );
     }
 
     if (!REDIRECT_STATUSES.has(response.status)) {
       if (current.hostname !== SHORT_HOST) {
         return extractCoordinatesFromGoogleMapsUrl(current.href);
       }
-      throw new MapResolveError('SHORT_URL_RESOLVE_FAILED', '短縮URLのリダイレクト先を確認できませんでした', 502);
+      throw new MapResolveError(
+        'SHORT_URL_RESOLVE_FAILED',
+        '短縮URLのリダイレクト先を確認できませんでした',
+        502,
+        { host: current.hostname.toLowerCase(), pathClass: pathClass(current), redirectCount, upstreamStatus: response.status }
+      );
     }
 
     const location = response.headers.get('location');
     if (!location) {
-      throw new MapResolveError('REDIRECT_LOCATION_MISSING', 'リダイレクト先を確認できませんでした', 502);
+      throw new MapResolveError(
+        'REDIRECT_LOCATION_MISSING',
+        'リダイレクト先を確認できませんでした',
+        502,
+        { host: current.hostname.toLowerCase(), pathClass: pathClass(current), redirectCount, upstreamStatus: response.status }
+      );
     }
 
     const next = new URL(location, current);
-    assertHttpsGoogleHost(next);
+    assertHttpsGoogleHost(next, { redirectCount: redirectCount + 1 });
 
     if (next.hostname !== SHORT_HOST) {
       try {

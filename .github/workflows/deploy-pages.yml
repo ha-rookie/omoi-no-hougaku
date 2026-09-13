@@ -35,6 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           test -s poc/google-maps-share-link/index.html
+          test -s poc/google-maps-share-link/server-poc-v2.html
           test -s poc/google-maps-share-link/resolver.mjs
           test -s functions/api/resolve-map.js
           test -s functions/_shared/google-maps-resolver.js
@@ -82,10 +83,13 @@ jobs:
 
             if curl -fsS "$BASE_URL/build.json" -o /tmp/build.json \
               && curl -fsS "$BASE_URL/" -o /tmp/index.html \
+              && curl -fsS "$BASE_URL/server-poc-v2.html" -o /tmp/server-poc-v2.html \
               && curl -fsS "$BASE_URL/resolver.mjs" -o /tmp/resolver.mjs \
               && grep -Fq "\"buildSha\":\"$EXPECTED_BUILD_SHA\"" /tmp/build.json \
               && grep -q 'Google Maps' /tmp/index.html \
               && grep -q 'Pages Function' /tmp/index.html \
+              && grep -q 'SERVER RESOLVER v2' /tmp/server-poc-v2.html \
+              && grep -q '/api/resolve-map' /tmp/server-poc-v2.html \
               && grep -q 'maps.app.goo.gl' /tmp/resolver.mjs \
               && [ "$api_status" = '400' ] \
               && grep -q 'URL_REQUIRED' /tmp/api.json; then

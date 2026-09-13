@@ -10,6 +10,7 @@
 - ARCH-002: Google Maps APIへ依存せず、外部地図は地点探索の補助として利用する
 - ARCH-003: 地点解析に失敗した場合は推測で補完せず、ユーザーに失敗を明示する
 - ARCH-004: 方位角計算をクライアント内の純粋ロジックとして分離し、テスト可能にする
+- ARCH-005: Google Maps短縮URLの展開だけをPages Functionへ限定し、地点情報のサーバー保存を行わない
 
 ## 3. System Context
 
@@ -27,24 +28,24 @@ User / Smartphone Browser
       |
       +--> Google Maps (external app/site, API not used)
       |
-      +--> [TBD] URL resolver only if client-side short-link resolution is impossible
+      +--> Cloudflare Pages Function /api/resolve-map
+              |
+              +--> maps.app.goo.gl redirect resolution only
 
 GitHub
   |
   +--> CI / Build / Review
   |
   v
-Cloudflare Pages
+Cloudflare Pages + Pages Functions
 ```
-
-実際の採用構成に合わせ、使わない要素は削除せず「該当なし」と明記する。
 
 ## 4. Deployment Architecture
 
 | ID | Component | Platform | Responsibility | Production | Preview |
 | --- | --- | --- | --- | --- | --- |
 | ARCH-010 | Frontend | Cloudflare Pages | UI、地点管理、方位角計算、端末センサー連携 | Production branch | PR Preview |
-| ARCH-011 | Server/API | 原則なし / TBD | 短縮URL解決がブラウザのみで成立しない場合だけ再検討 | TBD | TBD |
+| ARCH-011 | Short URL Resolver | Cloudflare Pages Functions | `maps.app.goo.gl` のredirectを検証し、確実な座標だけ返す | `/api/resolve-map` | 同一Route |
 | ARCH-012 | Data Store | Browser localStorage | 最大5地点の端末内保存 | User device | Preview originとは別Storage |
 | ARCH-013 | External Map | Google Maps | ユーザーによる地点探索・共有 | External | External |
 
@@ -52,8 +53,8 @@ Cloudflare Pages
 
 - ProductionとPreviewのoriginが異なるためlocalStorageも自動的に分離される
 - PreviewからProductionの登録地点を読み書きしない
-- MVPではProduction固有Secretsを原則持たない
-- 将来Worker等を追加する場合はProduction/PreviewのBindingsを分離する
+- Pages FunctionはDB・KV・D1等の永続Bindingを持たない
+- Production/Previewとも地点URL、地点名、座標をApplication logへ出さない
 - 環境差分がある場合はこの文書と `CLOUDFLARE_SETUP.md` の役割を分ける
   - なぜ分けるか・何を分けるか → 本文書
   - 具体的な設定手順 → Cloudflare Setup
@@ -78,7 +79,13 @@ User searches place in Google Maps
   -> user copies/shares Google Maps link
   -> 想いの方角 receives pasted/shared text
   -> validate supported URL/input format
-  -> resolve/extract coordinates (PoC target)
+  -> direct Google Maps URL: parse in browser
+  -> maps.app.goo.gl short URL:
+       POST /api/resolve-map
+       -> Pages Function validates scheme/host/redirect count
+       -> follows Google redirect manually
+       -> extracts only reliable coordinates
+       -> returns latitude/longitude/sourceType
   -> user confirms location + enters display name
   -> validate latitude/longitude/name
   -> save locally if stored count < 5
@@ -95,7 +102,8 @@ GitHub branch
   -> smartphone human review
   -> PR approval
   -> main merge
-  -> Production deploy
+  -> GitHub Actions + Wrangler
+  -> Cloudflare Pages / Pages Functions Production deploy
 ```
 
 定期バッチ、地点DB更新、サーバー同期はMVPでは該当なし。
@@ -108,27 +116,29 @@ GitHub branch
 | IF-002 | Browser Geolocation | 現在地取得 | Yes for direction calculation | User permission | 方角計算を行わず、許可/設定案内を表示 |
 | IF-003 | Device Orientation | 端末方位取得 | Yes for compass-style UI; bearing text may degrade gracefully | User permission / browser dependent | 方位角の数値・方角名のみへ縮退 |
 | IF-004 | Cloudflare Pages | Static hosting | Yes | Deploy integration | サイト自体が利用不可 |
-| IF-005 | URL Resolver | 短縮URL展開 | TBD | TBD | 地点登録のみ不可。既存地点の方角表示には影響させない |
-
-外部障害時にコア機能まで停止させるか、縮退できるかを明示する。
+| IF-005 | Pages Function URL Resolver | Google Maps短縮共有URLの一時展開 | Yes only when adding a short-link place | Same-origin browser request | 新規地点登録のみ不可。保存済み地点は利用可能 |
 
 ## 8. Trust Boundaries / Security
 
 - Browserで保持してよい情報: ユーザーが登録した表示名、緯度、経度、schema version
-- Browserへ出してはいけない情報: Secrets / tokens。MVPでは原則Secrets自体を持たない
-- Server側検証: Serverを採用した場合のみ、URL scheme/host/size/timeouts等を検証する
+- Browserへ出してはいけない情報: Secrets / tokens。MVPではRuntime Secretsは原則不要
+- Server入力: `https://maps.app.goo.gl/...` のみ
+- Server側検証: HTTPS、入力host、各redirect先host、URL長、body size、redirect上限
+- SSRF対策: allowlist外hostへredirectしない。汎用URL fetch proxyにしない
 - Client入力検証: 緯度 -90〜90、経度 -180〜180、表示名長、URL形式を検証する
-- CORS / CSP / same-origin: 外部script依存を最小化し、CSP導入時に必要originだけ許可する
-- 認証・認可: MVPでは該当なし
+- Same-origin: BrowserからのResolver利用はOriginがある場合に同一originのみ許可する
+- 認証・認可: MVPではユーザー認証なし。Resolverは機能限定・入力限定で公開する
 - 個人情報: 登録地点・表示名はセンシティブ情報として扱い、Analyticsへ送らない
-- Rate limit / abuse対策: Server/Workerを追加する場合に必須化する
+- Logging: request body、共有URL、地点名、座標をApplication logへ出さない
+- Cache: Resolver responseは `Cache-Control: no-store`
 
 ## 9. Availability / Failure Strategy
 
 | Failure | User-visible behavior | Fallback | Logging/Detection |
 | --- | --- | --- | --- |
 | Google Mapsを開けない | 地点探索ができない旨を表示 | 既存保存地点は利用可能 | Client error eventは地点情報を含めない |
-| 共有URLを解析できない | 「場所を読み取れませんでした」と表示 | 代替入力方式はPoC後に決定 | 形式カテゴリのみ記録可、URL本文は送信しない |
+| 共有URLを解析できない | 「場所を読み取れませんでした」と表示 | 将来の座標手入力をfallback候補とする | error codeのみ。URL本文は記録しない |
+| Pages Function / Google redirect失敗 | 短縮URLを読み取れない旨を表示 | direct URL/既存地点は利用可能 | error codeのみ。URL本文は記録しない |
 | Geolocation denied/unavailable | 現在地が取得できない旨を表示 | 方角表示を停止 | Permission state / error codeのみ |
 | Device Orientation unavailable | コンパス追従不可を表示 | 方位角・方角名の表示へ縮退 | Capabilityのみ |
 | localStorage unavailable/corrupt | 保存不可または初期化確認を表示 | 一時利用のみを検討 | ローカルエラー |
@@ -140,7 +150,7 @@ GitHub branch
 
 - Cloudflare Web Analytics: 導入可否は別Issueで判断
 - Application events: ページ表示、地点登録成功/失敗、位置情報許可結果など必要最小限。地点名・緯度経度・共有URLを送らない
-- Error logs: 個人地点情報を含めない
+- Resolver logs: 入力URL・取得座標をconsole出力しない。必要ならerror code/categoryのみ
 - Deployment history: GitHub / Cloudflare
 - Privacy boundary: 「どこを想っているか」が分析基盤へ流れないことを優先する
 
@@ -149,6 +159,7 @@ GitHub branch
 - Performance budget: JavaScript/CSSを必要最小限にし、スマートフォンで素早く起動できることを優先する
 - Cloudflare無料枠/費用上限: 初期利用規模では無料枠運用を目標とする。最新条件はリリース前に公式情報確認
 - API費用上限: Google Maps Platform APIはMVPでは0円（不使用）
+- Resolver: 地点追加時のみ呼び出し、保存済み地点表示では呼び出さない
 - Asset/cache strategy: Static assetsをCloudflare/CDNで配信。センシティブな地点データはcache対象にしない
 
 ## 12. Architecture Decisions
@@ -157,12 +168,10 @@ GitHub branch
 
 - ADR-0001: MVPではGoogle Maps APIを組み込まない
 - ADR-0002: 保存先は端末内のみ、最大5か所とする
+- ADR-0003: Google Maps短縮URLはPages Functionで一時展開する
 - PWA採用: TBD
-- URL Resolver採用: Google Maps共有リンクPoC後に決定
 
 ## 13. 未決事項
 
-- TBD-ARCH-001: `maps.app.goo.gl` の短縮共有リンクをブラウザのみで安全・安定に展開できるか
-- TBD-ARCH-002: TBD-ARCH-001が不成立の場合、Cloudflare Worker等でredirect解決を行うか
-- TBD-ARCH-003: Worker利用時に地点URLがサーバーへ送られるプライバシーTrade-offを許容するか
 - TBD-ARCH-004: PWA/Web Share TargetをどのReleaseへ含めるか
+- TBD-ARCH-005: Resolverの本番Rate Limitが必要になる利用規模の閾値

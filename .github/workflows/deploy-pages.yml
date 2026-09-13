@@ -64,23 +64,12 @@ jobs:
 
             if curl -fsS "$BASE_URL/build.json" -o /tmp/build.json \
               && curl -fsS "$BASE_URL/" -o /tmp/index.html \
-              && curl -fsS "$BASE_URL/resolver.mjs" -o /tmp/resolver.mjs; then
-              if EXPECTED_BUILD_SHA="$EXPECTED_BUILD_SHA" python3 - <<'PY'
-import json
-import os
-
-with open('/tmp/build.json', encoding='utf-8') as f:
-    data = json.load(f)
-
-if data.get('buildSha') != os.environ['EXPECTED_BUILD_SHA']:
-    raise SystemExit(1)
-PY
-              then
-                grep -q 'Google Maps' /tmp/index.html
-                grep -q 'maps.app.goo.gl' /tmp/resolver.mjs
-                ready=1
-                break
-              fi
+              && curl -fsS "$BASE_URL/resolver.mjs" -o /tmp/resolver.mjs \
+              && grep -Fq "\"buildSha\":\"$EXPECTED_BUILD_SHA\"" /tmp/build.json \
+              && grep -q 'Google Maps' /tmp/index.html \
+              && grep -q 'maps.app.goo.gl' /tmp/resolver.mjs; then
+              ready=1
+              break
             fi
 
             sleep 2

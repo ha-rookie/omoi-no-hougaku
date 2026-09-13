@@ -1,12 +1,12 @@
 name: PoC tests
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'poc/**'
       - 'functions/**'
       - 'tests/**'
-      - '.github/workflows/poc-tests.yml'
   push:
     branches:
       - main
@@ -14,14 +14,18 @@ on:
       - 'poc/**'
       - 'functions/**'
       - 'tests/**'
-      - '.github/workflows/poc-tests.yml'
 
 permissions:
   contents: read
 
+concurrency:
+  group: omoi-poc-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   google-maps-share-link:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v6

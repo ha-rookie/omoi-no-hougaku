@@ -43,14 +43,27 @@ function assertHttpsGoogleHost(url, { shortOnly = false } = {}) {
   if (url.protocol !== 'https:') {
     throw new MapResolveError('UNSUPPORTED_URL', 'HTTPSのGoogle Maps URLのみ対応します');
   }
+
   const host = url.hostname.toLowerCase();
   if (!ALLOWED_GOOGLE_HOSTS.has(host)) {
     throw new MapResolveError('REDIRECT_HOST_NOT_ALLOWED', 'Google Maps以外のホストへは接続しません', 502);
   }
+
   if (shortOnly && host !== SHORT_HOST) {
     throw new MapResolveError('SHORT_URL_REQUIRED', 'Google Mapsの短縮共有URLを入力してください');
   }
-  if (host !== SHORT_HOST && !url.pathname.startsWith('/maps')) {
+
+  if (host === SHORT_HOST) return;
+
+  // maps.app.goo.gl の展開途中では maps.google.com/?... のような
+  // ルートパス形式を経由することがある。Google Maps専用ホストに限って
+  // ルートパスを許可し、その後のredirectを追跡する。
+  if (host === 'maps.google.com') {
+    if (url.pathname === '/' || url.pathname.startsWith('/maps')) return;
+    throw new MapResolveError('UNSUPPORTED_URL', 'Google Maps URLとして確認できません', 502);
+  }
+
+  if (!url.pathname.startsWith('/maps')) {
     throw new MapResolveError('UNSUPPORTED_URL', 'Google Maps URLとして確認できません', 502);
   }
 }

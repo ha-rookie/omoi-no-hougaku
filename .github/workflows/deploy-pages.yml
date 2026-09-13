@@ -1,0 +1,92 @@
+name: Deploy PoC to Cloudflare Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'poc/google-maps-share-link/**'
+      - 'docs/CLOUDFLARE_SETUP.md'
+      - '.github/workflows/deploy-pages.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate PoC files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s poc/google-maps-share-link/index.html
+          test -s poc/google-maps-share-link/resolver.mjs
+          node --check poc/google-maps-share-link/resolver.mjs
+
+      - name: Run resolver tests
+        run: node poc/google-maps-share-link/resolver.test.mjs
+
+      - name: Write Pages build marker
+        shell: bash
+        run: |
+          printf '{"buildSha":"%s"}\n' "$GITHUB_SHA" > poc/google-maps-share-link/build.json
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          preCommands: npx wrangler pages project create omoi-no-hougaku --production-branch main || true
+          command: pages deploy poc/google-maps-share-link --project-name=omoi-no-hougaku --branch=main --commit-dirty=true
+
+      - name: Production smoke test
+        env:
+          BASE_URL: https://omoi-no-hougaku.pages.dev
+          EXPECTED_BUILD_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            echo "Pages readiness attempt $attempt/30"
+
+            if curl -fsS "$BASE_URL/build.json" -o /tmp/build.json \
+              && curl -fsS "$BASE_URL/" -o /tmp/index.html \
+              && curl -fsS "$BASE_URL/resolver.mjs" -o /tmp/resolver.mjs; then
+              if EXPECTED_BUILD_SHA="$EXPECTED_BUILD_SHA" python3 - <<'PY'
+import json
+import os
+
+with open('/tmp/build.json', encoding='utf-8') as f:
+    data = json.load(f)
+
+if data.get('buildSha') != os.environ['EXPECTED_BUILD_SHA']:
+    raise SystemExit(1)
+PY
+              then
+                grep -q 'Google Maps' /tmp/index.html
+                grep -q 'maps.app.goo.gl' /tmp/resolver.mjs
+                ready=1
+                break
+              fi
+            fi
+
+            sleep 2
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo 'PoC deployment did not propagate within 60 seconds.'
+            exit 1
+          fi

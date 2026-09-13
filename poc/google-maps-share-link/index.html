@@ -28,7 +28,7 @@
       <label for="input">Google Mapsの共有リンク</label>
       <textarea id="input" inputmode="url" autocomplete="off" placeholder="https://maps.app.goo.gl/... または Google Maps URL"></textarea>
       <button id="resolve" type="button">地点を読み取る</button>
-      <p class="muted">このPoCは地点を保存しません。短縮URLを解決するときはブラウザからGoogleへ通信します。</p>
+      <p class="muted">このPoCは地点を保存しません。Google Mapsの短縮URLだけは、リダイレクト先を確認するため同一サイトのCloudflare Pages Functionへ一時送信します。URLや座標をDBへ保存しません。</p>
     </section>
 
     <section class="card" aria-live="polite">
@@ -39,11 +39,12 @@
     <section class="card">
       <h2>判定ルール</h2>
       <ul>
+        <li><code>maps.app.goo.gl</code> の短縮URLは同一サイトのPages Functionで一時展開します</li>
         <li><code>!3d緯度!4d経度</code> を最優先します</li>
         <li><code>query</code> / <code>q</code> / <code>destination</code> が緯度経度そのものなら採用します</li>
         <li><code>@緯度,経度</code> は地図の表示中心の可能性があるため、登録地点としては採用しません</li>
         <li>Google Maps以外のURLや範囲外の座標は拒否します</li>
-        <li>短縮URLをブラウザだけで解決できない場合は、推測せずエラーにします</li>
+        <li>取得できない場合は推測せずエラーにします</li>
       </ul>
     </section>
   </main>
@@ -56,13 +57,64 @@
     const status = document.querySelector('#status');
     const result = document.querySelector('#result');
 
+    async function resolveShortUrlViaServer(rawUrl) {
+      const response = await fetch('/api/resolve-map', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        cache: 'no-store',
+        credentials: 'same-origin',
+        referrerPolicy: 'no-referrer',
+        body: JSON.stringify({ url: rawUrl.trim() }),
+      });
+
+      let payload;
+      try {
+        payload = await response.json();
+      } catch {
+        const error = new Error('地点解析APIの応答を読み取れませんでした');
+        error.name = 'PlaceInputError';
+        error.code = 'RESOLVER_RESPONSE_INVALID';
+        throw error;
+      }
+
+      if (!response.ok || !payload?.ok) {
+        const error = new Error(payload?.error?.message ?? '場所を読み取れませんでした');
+        error.name = 'PlaceInputError';
+        error.code = payload?.error?.code ?? 'RESOLVER_FAILED';
+        throw error;
+      }
+
+      return {
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        sourceType: payload.sourceType,
+        resolvedUrl: null,
+      };
+    }
+
+    async function resolveForPoc(rawInput) {
+      const normalized = String(rawInput ?? '').trim();
+      try {
+        const url = new URL(normalized);
+        if (url.protocol === 'https:' && url.hostname === 'maps.app.goo.gl') {
+          return await resolveShortUrlViaServer(normalized);
+        }
+      } catch {
+        // 座標文字列や不正入力の判定は既存resolverへ任せる。
+      }
+
+      return resolveGoogleMapsInput(normalized);
+    }
+
     button.addEventListener('click', async () => {
       status.textContent = '読み取り中…';
       result.textContent = '';
       button.disabled = true;
 
       try {
-        const resolved = await resolveGoogleMapsInput(input.value);
+        const resolved = await resolveForPoc(input.value);
         status.textContent = '読み取り成功';
         result.textContent = JSON.stringify(resolved, null, 2);
       } catch (error) {

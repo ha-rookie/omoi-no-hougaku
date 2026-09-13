@@ -4,12 +4,16 @@ on:
   pull_request:
     paths:
       - 'poc/**'
+      - 'functions/**'
+      - 'tests/**'
       - '.github/workflows/poc-tests.yml'
   push:
     branches:
       - main
     paths:
       - 'poc/**'
+      - 'functions/**'
+      - 'tests/**'
       - '.github/workflows/poc-tests.yml'
 
 permissions:
@@ -20,10 +24,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate syntax
+        run: |
+          node --check poc/google-maps-share-link/resolver.mjs
+          node --check functions/api/resolve-map.js
+          node --check functions/_shared/google-maps-resolver.js
       - name: Run resolver tests
-        run: node poc/google-maps-share-link/resolver.test.mjs
+        run: |
+          node poc/google-maps-share-link/resolver.test.mjs
+          node tests/google-maps-server-resolver.test.mjs

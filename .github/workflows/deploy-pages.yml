@@ -6,7 +6,12 @@ on:
     branches: [main]
     paths:
       - 'poc/google-maps-share-link/**'
+      - 'functions/**'
+      - 'tests/**'
       - 'docs/CLOUDFLARE_SETUP.md'
+      - 'docs/02_SYSTEM_ARCHITECTURE.md'
+      - 'docs/03_APPLICATION_ARCHITECTURE.md'
+      - 'docs/adr/**'
       - '.github/workflows/deploy-pages.yml'
 
 permissions:
@@ -25,16 +30,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Validate PoC files
+      - name: Validate PoC and Function files
         shell: bash
         run: |
           set -euo pipefail
           test -s poc/google-maps-share-link/index.html
           test -s poc/google-maps-share-link/resolver.mjs
+          test -s functions/api/resolve-map.js
+          test -s functions/_shared/google-maps-resolver.js
           node --check poc/google-maps-share-link/resolver.mjs
+          node --check functions/api/resolve-map.js
+          node --check functions/_shared/google-maps-resolver.js
 
       - name: Run resolver tests
-        run: node poc/google-maps-share-link/resolver.test.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node poc/google-maps-share-link/resolver.test.mjs
+          node tests/google-maps-server-resolver.test.mjs
 
       - name: Write Pages build marker
         shell: bash
@@ -62,12 +75,20 @@ jobs:
           for attempt in $(seq 1 30); do
             echo "Pages readiness attempt $attempt/30"
 
+            api_status="$(curl -sS -o /tmp/api.json -w '%{http_code}' \
+              -X POST "$BASE_URL/api/resolve-map" \
+              -H 'content-type: application/json' \
+              --data '{}')" || api_status="000"
+
             if curl -fsS "$BASE_URL/build.json" -o /tmp/build.json \
               && curl -fsS "$BASE_URL/" -o /tmp/index.html \
               && curl -fsS "$BASE_URL/resolver.mjs" -o /tmp/resolver.mjs \
               && grep -Fq "\"buildSha\":\"$EXPECTED_BUILD_SHA\"" /tmp/build.json \
               && grep -q 'Google Maps' /tmp/index.html \
-              && grep -q 'maps.app.goo.gl' /tmp/resolver.mjs; then
+              && grep -q 'Pages Function' /tmp/index.html \
+              && grep -q 'maps.app.goo.gl' /tmp/resolver.mjs \
+              && [ "$api_status" = '400' ] \
+              && grep -q 'URL_REQUIRED' /tmp/api.json; then
               ready=1
               break
             fi

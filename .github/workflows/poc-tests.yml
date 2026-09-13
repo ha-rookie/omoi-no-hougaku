@@ -7,13 +7,6 @@ on:
       - 'poc/**'
       - 'functions/**'
       - 'tests/**'
-  push:
-    branches:
-      - main
-    paths:
-      - 'poc/**'
-      - 'functions/**'
-      - 'tests/**'
 
 permissions:
   contents: read

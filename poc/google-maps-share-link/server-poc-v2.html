@@ -24,7 +24,7 @@
 </head>
 <body>
   <main>
-    <span class="badge">SERVER RESOLVER v2</span>
+    <span class="badge">SERVER RESOLVER v2.1</span>
     <h1>Google Maps共有リンク PoC</h1>
     <p>この画面はブラウザからGoogleへ直接アクセスしません。短縮URLを同一サイトのCloudflare Pages Functionへ送り、サーバー側で一時的に展開します。</p>
 
@@ -37,7 +37,7 @@
 
     <section class="card" aria-live="polite">
       <div id="status" class="status">未実行</div>
-      <pre id="result">SERVER RESOLVER v2 の結果がここに表示されます。</pre>
+      <pre id="result">SERVER RESOLVER v2.1 の結果がここに表示されます。</pre>
     </section>
   </main>
 
@@ -55,7 +55,7 @@
 
     button.addEventListener('click', async () => {
       const rawUrl = normalizeInput(input.value);
-      status.textContent = 'SERVER RESOLVER v2: 読み取り中…';
+      status.textContent = 'SERVER RESOLVER v2.1: 読み取り中…';
       result.textContent = '';
       button.disabled = true;
 
@@ -83,21 +83,24 @@
         if (!response.ok || !payload?.ok) {
           throw Object.assign(new Error(payload?.error?.message ?? '場所を読み取れませんでした'), {
             code: payload?.error?.code ?? 'RESOLVER_FAILED',
-            details: { httpStatus: response.status },
+            details: {
+              httpStatus: response.status,
+              ...(payload?.error?.details ?? {}),
+            },
           });
         }
 
-        status.textContent = 'SERVER RESOLVER v2: 読み取り成功';
+        status.textContent = 'SERVER RESOLVER v2.1: 読み取り成功';
         result.textContent = JSON.stringify({
-          mode: 'server-v2',
+          mode: 'server-v2.1',
           latitude: payload.latitude,
           longitude: payload.longitude,
           sourceType: payload.sourceType,
         }, null, 2);
       } catch (error) {
-        status.textContent = 'SERVER RESOLVER v2: 読み取り失敗';
+        status.textContent = 'SERVER RESOLVER v2.1: 読み取り失敗';
         result.textContent = JSON.stringify({
-          mode: 'server-v2',
+          mode: 'server-v2.1',
           name: error?.name ?? 'Error',
           code: error?.code ?? 'UNKNOWN_ERROR',
           message: error?.message ?? String(error),

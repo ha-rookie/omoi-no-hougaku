@@ -1,0 +1,29 @@
+name: PoC tests
+
+on:
+  pull_request:
+    paths:
+      - 'poc/**'
+      - '.github/workflows/poc-tests.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'poc/**'
+      - '.github/workflows/poc-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  google-maps-share-link:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run resolver tests
+        run: node poc/google-maps-share-link/resolver.test.mjs

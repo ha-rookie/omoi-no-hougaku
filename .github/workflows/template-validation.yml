@@ -1,0 +1,87 @@
+name: Template validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check required files
+        shell: bash
+        run: |
+          set -eu
+          required=(
+            AGENTS.md
+            README.md
+            CHANGELOG.md
+            docs/README.md
+            docs/00_PROJECT_OVERVIEW.md
+            docs/01_REQUIREMENTS.md
+            docs/02_SYSTEM_ARCHITECTURE.md
+            docs/03_APPLICATION_ARCHITECTURE.md
+            docs/04_REPOSITORY_STRUCTURE.md
+            docs/05_DESIGN_MANAGEMENT.md
+            docs/06_REQUIREMENTS_TRACEABILITY.md
+            docs/design/README.md
+            docs/adr/README.md
+            docs/adr/ADR-0000-template.md
+            docs/GIT_WORKFLOW.md
+            docs/ASSET_WORKFLOW.md
+            docs/CLOUDFLARE_SETUP.md
+            docs/TROUBLESHOOTING.md
+            docs/RELEASE_CHECKLIST.md
+            .github/ISSUE_TEMPLATE/feature.yml
+            .github/ISSUE_TEMPLATE/bug.yml
+            .github/PULL_REQUEST_TEMPLATE.md
+          )
+          for path in "${required[@]}"; do
+            test -s "$path" || { echo "Missing or empty: $path"; exit 1; }
+          done
+      - name: Confirm template placeholders exist
+        shell: bash
+        run: |
+          set -eu
+          for path in             docs/00_PROJECT_OVERVIEW.md             docs/01_REQUIREMENTS.md             docs/02_SYSTEM_ARCHITECTURE.md             docs/03_APPLICATION_ARCHITECTURE.md             docs/04_REPOSITORY_STRUCTURE.md             docs/adr/ADR-0000-template.md
+          do
+            grep -q "CHANGE-ME" "$path" || {
+              echo "Template file must retain CHANGE-ME placeholders: $path"
+              exit 1
+            }
+          done
+      - name: Confirm design management rules exist
+        shell: bash
+        run: |
+          set -eu
+          grep -q "承認済み最新設計: GitHub" docs/05_DESIGN_MANAGEMENT.md
+          grep -q "Google Drive" docs/05_DESIGN_MANAGEMENT.md
+          grep -q "Significant Design Change" docs/05_DESIGN_MANAGEMENT.md
+          grep -q "Requirements Traceability" docs/05_DESIGN_MANAGEMENT.md
+          grep -q "Design Previewは表示面" docs/design/README.md
+          grep -q "Superseded" docs/adr/README.md
+      - name: Confirm Replacement PR handoff fields exist
+        shell: bash
+        run: |
+          set -eu
+          grep -q "## Replacement PR" .github/PULL_REQUEST_TEMPLATE.md
+          grep -q "元PR:" .github/PULL_REQUEST_TEMPLATE.md
+          grep -q "引き継ぎhead SHA:" .github/PULL_REQUEST_TEMPLATE.md
+          grep -q "CI run:" .github/PULL_REQUEST_TEMPLATE.md
+          grep -q "Preview run:" .github/PULL_REQUEST_TEMPLATE.md
+          grep -q "引き継ぐ承認内容:" .github/PULL_REQUEST_TEMPLATE.md
+      - name: Confirm Asset Handoff fields exist
+        shell: bash
+        run: |
+          set -eu
+          grep -q "label: Asset Handoff" .github/ISSUE_TEMPLATE/feature.yml
+          grep -q "元Design Issue/PR:" .github/ISSUE_TEMPLATE/feature.yml
+          grep -q "承認済みAsset一覧:" .github/ISSUE_TEMPLATE/feature.yml
+          grep -q "Asset配置場所:" .github/ISSUE_TEMPLATE/feature.yml
+          grep -q "file hash または承認head SHA:" .github/ISSUE_TEMPLATE/feature.yml
+          grep -q "## 実装Issueへの引き継ぎ" docs/ASSET_WORKFLOW.md

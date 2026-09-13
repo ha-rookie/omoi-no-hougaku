@@ -1,0 +1,77 @@
+name: Feature
+description: 新機能・改善を設計して実装する
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景
+      description: なぜ必要か。利用者の事実、問い合わせ、データを記載
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 現在の問題
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 対象・非対象
+      placeholder: |
+        対象:
+        非対象:
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影響
+      description: UI、データ、Security、SEO、Cloudflare、運用
+  - type: textarea
+    id: asset_handoff
+    attributes:
+      label: Asset Handoff
+      description: Assetを使わない場合は「該当なし」。承認済みAssetを使う場合はDesign承認から実装へ固定情報を引き継ぐ
+      placeholder: |
+        Asset使用: あり / なし
+        元Design Issue/PR:
+        承認済みAsset一覧:
+        Asset配置場所:
+        file hash または承認head SHA:
+        承認Preview:
+        補足:
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件
+      placeholder: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: test
+    attributes:
+      label: テスト観点
+    validations:
+      required: true
+  - type: checkboxes
+    id: design
+    attributes:
+      label: 設計書
+      options:
+        - label: 設計書更新の要否を判断した
+          required: true
+        - label: Asset使用時は承認済みAssetの固定情報を確認した
+          required: false
+        - label: 人間承認前にmainへマージしない
+          required: true

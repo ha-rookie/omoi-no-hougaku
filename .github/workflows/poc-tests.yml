@@ -83,4 +83,5 @@ jobs:
           command: pages deploy public --project-name=omoi-no-hougaku --branch=pr-${{ github.event.pull_request.number }} --commit-dirty=true
       - name: Show preview URL
         if: github.event_name == 'pull_request'
-        run: echo "Preview URL: ${{ steps.preview.outputs.deployment-url }}"
+        run: |
+          echo "Preview URL: ${{ steps.preview.outputs.deployment-url }}"

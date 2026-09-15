@@ -38,6 +38,8 @@ jobs:
           test -s poc/google-maps-share-link/server-poc-v2.html
           test -s poc/google-maps-share-link/resolver.mjs
           test -s poc/google-maps-share-link/share-target-poc.html
+          test -s poc/google-maps-share-link/share-location-poc.html
+          test -s poc/google-maps-share-link/share-location-resolver.mjs
           test -s poc/google-maps-share-link/share-target-manifest.webmanifest
           test -s poc/google-maps-share-link/sw-share-target.js
           test -s poc/google-maps-share-link/share-target-icon.svg
@@ -50,6 +52,7 @@ jobs:
           test -s functions/api/resolve-location.js
           test -s functions/_shared/places-details.js
           node --check poc/google-maps-share-link/resolver.mjs
+          node --check poc/google-maps-share-link/share-location-resolver.mjs
           node --check poc/google-maps-share-link/sw-share-target.js
           node --check functions/api/resolve-map.js
           node --check functions/_shared/google-maps-resolver.js
@@ -67,6 +70,7 @@ jobs:
           node tests/google-maps-server-resolver.test.mjs
           node tests/maps-grounding-resolver.test.mjs
           node tests/places-details.test.mjs
+          node tests/share-location-resolver.test.mjs
 
       - name: Write Pages build marker
         shell: bash
@@ -123,6 +127,8 @@ jobs:
               && curl -fsS "$BASE_URL/server-poc-v2.html" -o /tmp/server-poc-v2.html \
               && curl -fsS "$BASE_URL/resolver.mjs" -o /tmp/resolver.mjs \
               && curl -fsS "$BASE_URL/share-target-poc.html" -o /tmp/share-target-poc.html \
+              && curl -fsS "$BASE_URL/share-location-poc.html" -o /tmp/share-location-poc.html \
+              && curl -fsS "$BASE_URL/share-location-resolver.mjs" -o /tmp/share-location-resolver.mjs \
               && curl -fsS "$BASE_URL/share-target-manifest.webmanifest" -o /tmp/share-target-manifest.webmanifest \
               && curl -fsS "$BASE_URL/sw-share-target.js" -o /tmp/sw-share-target.js \
               && curl -fsS "$BASE_URL/resolution-api-poc.html" -o /tmp/resolution-api-poc.html \
@@ -134,6 +140,8 @@ jobs:
               && grep -q '/api/resolve-map' /tmp/server-poc-v2.html \
               && grep -q 'maps.app.goo.gl' /tmp/resolver.mjs \
               && grep -q 'WEB SHARE TARGET PoC' /tmp/share-target-poc.html \
+              && grep -q 'SHARE → LOCATION PoC' /tmp/share-location-poc.html \
+              && grep -q 'shared-title' /tmp/share-location-resolver.mjs \
               && grep -q 'share_target' /tmp/share-target-manifest.webmanifest \
               && grep -q '/share-target' /tmp/sw-share-target.js \
               && grep -q 'MAPS GROUNDING LITE PoC' /tmp/resolution-api-poc.html \

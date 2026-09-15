@@ -23,12 +23,12 @@ async function handleShareTarget(request) {
       url: String(formData.get('url') ?? ''),
     };
 
-    const target = new URL('/share-target-poc.html', self.location.origin);
+    const target = new URL('/share-location-poc.html', self.location.origin);
     target.hash = `share=${encodeURIComponent(JSON.stringify(payload))}`;
 
     return Response.redirect(target.toString(), 303);
   } catch {
-    const target = new URL('/share-target-poc.html', self.location.origin);
+    const target = new URL('/share-location-poc.html', self.location.origin);
     target.hash = 'share-error=1';
     return Response.redirect(target.toString(), 303);
   }

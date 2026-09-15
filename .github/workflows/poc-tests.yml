@@ -29,6 +29,8 @@ jobs:
       - name: Validate syntax
         run: |
           node --check poc/google-maps-share-link/resolver.mjs
+          node --check poc/google-maps-share-link/share-location-resolver.mjs
+          node --check poc/google-maps-share-link/sw-share-target.js
           node --check functions/api/resolve-map.js
           node --check functions/_shared/google-maps-resolver.js
           node --check functions/api/resolve-maps-url.js
@@ -41,3 +43,4 @@ jobs:
           node tests/google-maps-server-resolver.test.mjs
           node tests/maps-grounding-resolver.test.mjs
           node tests/places-details.test.mjs
+          node tests/share-location-resolver.test.mjs

@@ -1,8 +1,8 @@
 {
   "name": "想いの方角 Share PoC",
   "short_name": "想いの方角PoC",
-  "description": "Google Maps Androidの共有内容を確認するためのPoC",
-  "start_url": "/share-target-poc.html",
+  "description": "Google Maps Androidの共有から地点座標を確認するためのPoC",
+  "start_url": "/share-location-poc.html",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f5f5f4",

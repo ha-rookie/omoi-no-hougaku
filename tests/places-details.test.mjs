@@ -31,12 +31,14 @@ assert.throws(() => normalizePlaceId('places/a/b'), (error) => error?.code === '
     },
   });
 
+  const parsedUrl = new URL(capturedUrl);
   assert.equal(
-    capturedUrl,
+    `${parsedUrl.origin}${parsedUrl.pathname}`,
     'https://places.googleapis.com/v1/places/GhIJRuP1BZlbQUARbywoDMoZYUA'
   );
+  assert.equal(parsedUrl.searchParams.get('fields'), 'id,location');
   assert.equal(capturedHeaders['x-goog-api-key'], 'test-key');
-  assert.equal(capturedHeaders['x-goog-field-mask'], 'id,location');
+  assert.equal(capturedHeaders['x-goog-field-mask'], undefined);
   assert.deepEqual(result, {
     placeId: 'GhIJRuP1BZlbQUARbywoDMoZYUA',
     latitude: 34.715607,

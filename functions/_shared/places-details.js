@@ -1,5 +1,6 @@
 const PLACES_ENDPOINT = 'https://places.googleapis.com/v1/places/';
 const MAX_PLACE_ID_LENGTH = 256;
+const PLACE_FIELDS = 'id,location';
 
 export class PlacesDetailsError extends Error {
   constructor(code, message, status = 400, details = null) {
@@ -38,12 +39,16 @@ export async function getPlaceLocation(placeId, { apiKey, fetchImpl = fetch } = 
   let response;
 
   try {
-    response = await fetchImpl(`${PLACES_ENDPOINT}${encodeURIComponent(normalizedPlaceId)}`, {
+    const url = new URL(`${PLACES_ENDPOINT}${encodeURIComponent(normalizedPlaceId)}`);
+    // Google Places API (New)はFieldMask必須。Cloudflare Pages Function経由で
+    // X-Goog-FieldMaskヘッダーが上流に認識されない実機事象があったため、
+    // 公式にサポートされる fields URLパラメータを使用する。
+    url.searchParams.set('fields', PLACE_FIELDS);
+
+    response = await fetchImpl(url.toString(), {
       method: 'GET',
       headers: {
-        'content-type': 'application/json',
         'x-goog-api-key': apiKey,
-        'x-goog-field-mask': 'id,location',
       },
     });
   } catch (error) {

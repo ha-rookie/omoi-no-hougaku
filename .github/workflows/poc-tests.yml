@@ -79,7 +79,8 @@ jobs:
           wranglerVersion: latest
           preCommands: |
             test -n "$MAPS_GROUNDING_API_KEY"
-            printf '%s' "$MAPS_GROUNDING_API_KEY" | npx wrangler pages secret put MAPS_GROUNDING_API_KEY --project-name=omoi-no-hougaku
+            printf '%s' "$MAPS_GROUNDING_API_KEY" | npx wrangler pages secret put MAPS_GROUNDING_API_KEY --project-name=omoi-no-hougaku --env preview
+            npx wrangler pages secret list --project-name=omoi-no-hougaku --env preview | grep -q 'MAPS_GROUNDING_API_KEY'
           command: pages deploy public --project-name=omoi-no-hougaku --branch=pr-${{ github.event.pull_request.number }} --commit-dirty=true
       - name: Show preview URL
         if: github.event_name == 'pull_request'

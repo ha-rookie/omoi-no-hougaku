@@ -31,7 +31,10 @@ jobs:
           node --check poc/google-maps-share-link/resolver.mjs
           node --check functions/api/resolve-map.js
           node --check functions/_shared/google-maps-resolver.js
+          node --check functions/api/resolve-maps-url.js
+          node --check functions/_shared/maps-grounding-resolver.js
       - name: Run resolver tests
         run: |
           node poc/google-maps-share-link/resolver.test.mjs
           node tests/google-maps-server-resolver.test.mjs
+          node tests/maps-grounding-resolver.test.mjs

@@ -1,6 +1,6 @@
 # ADR-0004: Web Share Targetと2経路の地点解決をMVP主導線とする
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-15
 - Related: Issue #18, #20, #22, #25, #27, #29
 - Supersedes: ADR-0001, ADR-0003
@@ -130,4 +130,4 @@ PoC #25で以下をAndroid実機確認済み。
 - 名称付き施設: `method=maps-url-api`, `apiCalled=true`、Place IDと緯度経度取得成功
 - Share TargetのService Worker未登録でHTTP 405となった問題は#27で修正し再確認済み
 
-本ADRがAcceptedになった後、PoCコードを直接importせず、本番`public/` / `functions/`へ移植する。
+人間承認を受け、本ADRをAcceptedとする。PoCコードを直接importせず、本番`public/` / `functions/`へ移植する。

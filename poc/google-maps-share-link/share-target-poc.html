@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f5f4">
+  <link rel="manifest" href="/share-target-manifest.webmanifest">
+  <link rel="icon" href="/share-target-icon.svg" type="image/svg+xml">
+  <title>Android共有Target PoC | 想いの方角</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #f5f5f4; color: #222; }
+    main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    p, li { line-height: 1.7; }
+    .badge { display: inline-block; padding: 4px 8px; border: 1px solid #999; border-radius: 999px; font-size: .82rem; font-weight: 700; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 16px; padding: 16px; margin-top: 16px; }
+    button { width: 100%; margin-top: 12px; padding: 12px 16px; border: 0; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; }
+    button[hidden] { display: none; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #f6f6f6; padding: 12px; border-radius: 10px; overflow: auto; }
+    .status { font-weight: 700; }
+    .muted { color: #666; font-size: .92rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">WEB SHARE TARGET PoC</span>
+    <h1>想いの方角 Share PoC</h1>
+    <p>Google Maps Androidの「共有」から、このPWAへ何が渡されるか確認します。</p>
+
+    <section class="card">
+      <h2>1. このPoCをインストール</h2>
+      <p id="install-status" class="status">インストール可否を確認中…</p>
+      <button id="install" type="button" hidden>この端末にインストール</button>
+      <p class="muted">ボタンが出ない場合は、Chromeのメニューから「アプリをインストール」または「ホーム画面に追加」を選んでください。インストール済みなら次へ進めます。</p>
+    </section>
+
+    <section class="card">
+      <h2>2. Google Mapsから共有</h2>
+      <ol>
+        <li>Google Mapsで任意の地点を開く</li>
+        <li>「共有」を押す</li>
+        <li>共有先から「想いの方角 Share PoC」を選ぶ</li>
+        <li>この画面が開いたら、下の受信結果を確認する</li>
+      </ol>
+      <p class="muted">共有内容は外部APIやDBへ送信しません。POSTをService Workerが端末内で受け取り、URLのqueryにも載せません。</p>
+    </section>
+
+    <section class="card" aria-live="polite">
+      <h2>3. 受信結果</h2>
+      <div id="share-status" class="status">まだ共有データを受信していません。</div>
+      <pre id="result">{
+  "title": null,
+  "text": null,
+  "url": null
+}</pre>
+      <button id="copy" type="button" hidden>結果をコピー</button>
+    </section>
+
+    <section class="card">
+      <h2>診断</h2>
+      <pre id="diagnostic">Service Workerを確認中…</pre>
+    </section>
+  </main>
+
+  <script>
+    const installButton = document.querySelector('#install');
+    const installStatus = document.querySelector('#install-status');
+    const shareStatus = document.querySelector('#share-status');
+    const result = document.querySelector('#result');
+    const copyButton = document.querySelector('#copy');
+    const diagnostic = document.querySelector('#diagnostic');
+    let deferredInstallPrompt = null;
+    let lastPayload = null;
+
+    async function registerServiceWorker() {
+      if (!('serviceWorker' in navigator)) {
+        diagnostic.textContent = 'Service Worker: 非対応';
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.register('/sw-share-target.js', { scope: '/' });
+        await navigator.serviceWorker.ready;
+        diagnostic.textContent = JSON.stringify({
+          serviceWorker: 'ready',
+          scope: registration.scope,
+          controller: Boolean(navigator.serviceWorker.controller),
+          displayModeStandalone: window.matchMedia('(display-mode: standalone)').matches,
+        }, null, 2);
+      } catch (error) {
+        diagnostic.textContent = JSON.stringify({
+          serviceWorker: 'failed',
+          message: error?.message ?? String(error),
+        }, null, 2);
+      }
+    }
+
+    function readSharedPayloadFromHash() {
+      const prefix = '#share=';
+      if (!location.hash.startsWith(prefix)) return;
+
+      try {
+        const payload = JSON.parse(decodeURIComponent(location.hash.slice(prefix.length)));
+        lastPayload = {
+          title: payload?.title || null,
+          text: payload?.text || null,
+          url: payload?.url || null,
+        };
+        shareStatus.textContent = 'Google Maps等から共有データを受信しました。';
+        result.textContent = JSON.stringify(lastPayload, null, 2);
+        copyButton.hidden = false;
+        history.replaceState(null, '', location.pathname);
+      } catch (error) {
+        shareStatus.textContent = '共有データの表示に失敗しました。';
+        result.textContent = JSON.stringify({ message: error?.message ?? String(error) }, null, 2);
+      }
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      installStatus.textContent = 'インストールできます。';
+      installButton.hidden = false;
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      installButton.hidden = true;
+      installStatus.textContent = 'インストールされました。Google Mapsの共有先を確認してください。';
+    });
+
+    installButton.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      const choice = await deferredInstallPrompt.userChoice;
+      installStatus.textContent = choice.outcome === 'accepted'
+        ? 'インストール処理を開始しました。'
+        : 'インストールはキャンセルされました。';
+      deferredInstallPrompt = null;
+      installButton.hidden = true;
+    });
+
+    copyButton.addEventListener('click', async () => {
+      if (!lastPayload) return;
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(lastPayload, null, 2));
+        copyButton.textContent = 'コピーしました';
+      } catch {
+        copyButton.textContent = 'コピーできませんでした';
+      }
+    });
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      installStatus.textContent = 'PWAとして起動しています。Google Mapsから共有してください。';
+    } else {
+      installStatus.textContent = 'Chromeのインストール候補を待っています。';
+    }
+
+    readSharedPayloadFromHash();
+    registerServiceWorker();
+  </script>
+</body>
+</html>

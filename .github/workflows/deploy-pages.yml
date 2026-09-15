@@ -37,11 +37,17 @@ jobs:
           test -s poc/google-maps-share-link/index.html
           test -s poc/google-maps-share-link/server-poc-v2.html
           test -s poc/google-maps-share-link/resolver.mjs
+          test -s poc/google-maps-share-link/share-target-poc.html
+          test -s poc/google-maps-share-link/share-target-manifest.webmanifest
+          test -s poc/google-maps-share-link/sw-share-target.js
+          test -s poc/google-maps-share-link/share-target-icon.svg
           test -s functions/api/resolve-map.js
           test -s functions/_shared/google-maps-resolver.js
           node --check poc/google-maps-share-link/resolver.mjs
+          node --check poc/google-maps-share-link/sw-share-target.js
           node --check functions/api/resolve-map.js
           node --check functions/_shared/google-maps-resolver.js
+          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('poc/google-maps-share-link/share-target-manifest.webmanifest','utf8')); if(!m.share_target || m.share_target.method !== 'POST') process.exit(1)"
 
       - name: Run resolver tests
         shell: bash
@@ -91,12 +97,18 @@ jobs:
               && curl -fsS "$BASE_URL/" -o /tmp/index.html \
               && curl -fsS "$BASE_URL/server-poc-v2.html" -o /tmp/server-poc-v2.html \
               && curl -fsS "$BASE_URL/resolver.mjs" -o /tmp/resolver.mjs \
+              && curl -fsS "$BASE_URL/share-target-poc.html" -o /tmp/share-target-poc.html \
+              && curl -fsS "$BASE_URL/share-target-manifest.webmanifest" -o /tmp/share-target-manifest.webmanifest \
+              && curl -fsS "$BASE_URL/sw-share-target.js" -o /tmp/sw-share-target.js \
               && grep -Fq "\"buildSha\":\"$EXPECTED_BUILD_SHA\"" /tmp/build.json \
               && grep -q 'Google Maps' /tmp/index.html \
               && grep -q 'Pages Function' /tmp/index.html \
               && grep -q 'SERVER RESOLVER v2' /tmp/server-poc-v2.html \
               && grep -q '/api/resolve-map' /tmp/server-poc-v2.html \
               && grep -q 'maps.app.goo.gl' /tmp/resolver.mjs \
+              && grep -q 'WEB SHARE TARGET PoC' /tmp/share-target-poc.html \
+              && grep -q 'share_target' /tmp/share-target-manifest.webmanifest \
+              && grep -q '/share-target' /tmp/sw-share-target.js \
               && [ "$api_status" = '400' ] \
               && grep -q 'URL_REQUIRED' /tmp/api.json; then
               ready=1

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f5f4">
+  <title>Google Maps座標解決PoC | 想いの方角</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #f5f5f4; color: #222; }
+    main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    p, li { line-height: 1.7; }
+    .badge { display: inline-block; padding: 4px 8px; border: 1px solid #999; border-radius: 999px; font-size: .82rem; font-weight: 700; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 16px; padding: 16px; margin-top: 16px; }
+    label { display: block; font-weight: 700; margin-bottom: 8px; }
+    input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #bbb; border-radius: 10px; font: inherit; }
+    button { width: 100%; margin-top: 12px; padding: 12px 16px; border: 0; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .55; cursor: wait; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #f6f6f6; padding: 12px; border-radius: 10px; overflow: auto; }
+    .muted { color: #666; font-size: .92rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">MAPS URL → LOCATION PoC</span>
+    <h1>Google Maps共有URLから緯度経度まで取得</h1>
+    <p><code>maps.app.goo.gl</code> を Maps Grounding Lite でPlace IDへ解決し、そのPlace IDをPlaces API (New)へ渡して座標を取得します。</p>
+
+    <section class="card">
+      <label for="maps-url">Google Maps短縮URL</label>
+      <input id="maps-url" type="url" inputmode="url" autocomplete="off" placeholder="https://maps.app.goo.gl/...">
+      <button id="resolve" type="button">緯度経度まで確認</button>
+      <p class="muted">APIキーはブラウザへ配信しません。Cloudflare Pages Function内だけでGoogle APIを呼びます。</p>
+    </section>
+
+    <section class="card" aria-live="polite">
+      <h2>結果</h2>
+      <pre id="result">まだ実行していません。</pre>
+    </section>
+  </main>
+
+  <script>
+    const urlInput = document.querySelector('#maps-url');
+    const resolveButton = document.querySelector('#resolve');
+    const result = document.querySelector('#result');
+
+    resolveButton.addEventListener('click', async () => {
+      const url = urlInput.value.trim();
+      if (!url) {
+        result.textContent = 'Google Maps短縮URLを入力してください。';
+        return;
+      }
+
+      resolveButton.disabled = true;
+      result.textContent = '確認中…';
+
+      try {
+        const response = await fetch('/api/resolve-location', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const payload = await response.json();
+        result.textContent = JSON.stringify(
+          { httpStatus: response.status, ...payload },
+          null,
+          2
+        );
+      } catch (error) {
+        result.textContent = JSON.stringify(
+          {
+            ok: false,
+            error: {
+              code: 'BROWSER_REQUEST_FAILED',
+              message: error?.message ?? String(error),
+            },
+          },
+          null,
+          2
+        );
+      } finally {
+        resolveButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

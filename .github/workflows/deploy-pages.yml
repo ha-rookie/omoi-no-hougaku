@@ -42,16 +42,21 @@ jobs:
           test -s poc/google-maps-share-link/sw-share-target.js
           test -s poc/google-maps-share-link/share-target-icon.svg
           test -s poc/google-maps-share-link/resolution-api-poc.html
+          test -s poc/google-maps-share-link/location-poc.html
           test -s functions/api/resolve-map.js
           test -s functions/_shared/google-maps-resolver.js
           test -s functions/api/resolve-maps-url.js
           test -s functions/_shared/maps-grounding-resolver.js
+          test -s functions/api/resolve-location.js
+          test -s functions/_shared/places-details.js
           node --check poc/google-maps-share-link/resolver.mjs
           node --check poc/google-maps-share-link/sw-share-target.js
           node --check functions/api/resolve-map.js
           node --check functions/_shared/google-maps-resolver.js
           node --check functions/api/resolve-maps-url.js
           node --check functions/_shared/maps-grounding-resolver.js
+          node --check functions/api/resolve-location.js
+          node --check functions/_shared/places-details.js
           node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('poc/google-maps-share-link/share-target-manifest.webmanifest','utf8')); if(!m.share_target || m.share_target.method !== 'POST') process.exit(1)"
 
       - name: Run resolver tests
@@ -61,6 +66,7 @@ jobs:
           node poc/google-maps-share-link/resolver.test.mjs
           node tests/google-maps-server-resolver.test.mjs
           node tests/maps-grounding-resolver.test.mjs
+          node tests/places-details.test.mjs
 
       - name: Write Pages build marker
         shell: bash
@@ -107,6 +113,10 @@ jobs:
               -X POST "$BASE_URL/api/resolve-maps-url" \
               -H 'content-type: application/json' \
               --data '{}')" || grounding_status="000"
+            location_status="$(curl -sS -o /tmp/location-api.json -w '%{http_code}' \
+              -X POST "$BASE_URL/api/resolve-location" \
+              -H 'content-type: application/json' \
+              --data '{}')" || location_status="000"
 
             if curl -fsS "$BASE_URL/build.json" -o /tmp/build.json \
               && curl -fsS "$BASE_URL/" -o /tmp/index.html \
@@ -116,6 +126,7 @@ jobs:
               && curl -fsS "$BASE_URL/share-target-manifest.webmanifest" -o /tmp/share-target-manifest.webmanifest \
               && curl -fsS "$BASE_URL/sw-share-target.js" -o /tmp/sw-share-target.js \
               && curl -fsS "$BASE_URL/resolution-api-poc.html" -o /tmp/resolution-api-poc.html \
+              && curl -fsS "$BASE_URL/location-poc.html" -o /tmp/location-poc.html \
               && grep -Fq "\"buildSha\":\"$EXPECTED_BUILD_SHA\"" /tmp/build.json \
               && grep -q 'Google Maps' /tmp/index.html \
               && grep -q 'Pages Function' /tmp/index.html \
@@ -126,10 +137,13 @@ jobs:
               && grep -q 'share_target' /tmp/share-target-manifest.webmanifest \
               && grep -q '/share-target' /tmp/sw-share-target.js \
               && grep -q 'MAPS GROUNDING LITE PoC' /tmp/resolution-api-poc.html \
+              && grep -q 'MAPS URL → LOCATION PoC' /tmp/location-poc.html \
               && [ "$api_status" = '400' ] \
               && grep -q 'URL_REQUIRED' /tmp/api.json \
               && [ "$grounding_status" = '400' ] \
-              && grep -q 'URL_REQUIRED' /tmp/grounding-api.json; then
+              && grep -q 'URL_REQUIRED' /tmp/grounding-api.json \
+              && [ "$location_status" = '400' ] \
+              && grep -q 'URL_REQUIRED' /tmp/location-api.json; then
               ready=1
               break
             fi

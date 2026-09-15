@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f5f4">
+  <link rel="manifest" href="/share-target-manifest.webmanifest">
+  <link rel="icon" href="/share-target-icon.svg" type="image/svg+xml">
+  <title>共有→地点座標 PoC | 想いの方角</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #f5f5f4; color: #222; }
+    main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    p, li { line-height: 1.7; }
+    .badge { display: inline-block; padding: 4px 8px; border: 1px solid #999; border-radius: 999px; font-size: .82rem; font-weight: 700; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 16px; padding: 16px; margin-top: 16px; }
+    .status { font-weight: 700; }
+    .ok { color: #176b39; }
+    .error { color: #a12622; }
+    .muted { color: #666; font-size: .92rem; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #f6f6f6; padding: 12px; border-radius: 10px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">SHARE → LOCATION PoC</span>
+    <h1>Google Maps共有から地点を自動確定</h1>
+    <p>任意ピンは共有タイトルの緯度経度を直接採用し、施設・住所は共有URLをGoogle公式APIで解決します。</p>
+
+    <section class="card">
+      <h2>使い方</h2>
+      <ol>
+        <li>Google Mapsで地点を開く</li>
+        <li>「共有」を押す</li>
+        <li>「想いの方角 Share PoC」を選ぶ</li>
+      </ol>
+      <p class="muted">任意ピンでtitleが緯度経度の場合は外部APIを呼びません。施設等のURL解決時だけCloudflare Pages Function経由でGoogle APIを利用します。</p>
+    </section>
+
+    <section class="card" aria-live="polite">
+      <h2>判定結果</h2>
+      <div id="status" class="status">共有待ちです。</div>
+      <pre id="location">{
+  "latitude": null,
+  "longitude": null,
+  "method": null,
+  "apiCalled": false
+}</pre>
+    </section>
+
+    <section class="card">
+      <h2>受信した共有データ</h2>
+      <pre id="payload">{
+  "title": null,
+  "text": null,
+  "url": null
+}</pre>
+    </section>
+  </main>
+
+  <script type="module">
+    import { classifySharedLocation } from './share-location-resolver.mjs';
+
+    const status = document.querySelector('#status');
+    const locationResult = document.querySelector('#location');
+    const payloadResult = document.querySelector('#payload');
+
+    function showLocation(data, ok = true) {
+      status.className = `status ${ok ? 'ok' : 'error'}`;
+      locationResult.textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function resolveMapsUrl(mapsUrl) {
+      const response = await fetch('/api/resolve-location', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: mapsUrl }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body?.ok) {
+        throw new Error(body?.error?.message || `地点解決APIがHTTP ${response.status}を返しました`);
+      }
+      return body;
+    }
+
+    async function handleSharedPayload(payload) {
+      const normalizedPayload = {
+        title: payload?.title || null,
+        text: payload?.text || null,
+        url: payload?.url || null,
+      };
+      payloadResult.textContent = JSON.stringify(normalizedPayload, null, 2);
+
+      const classified = classifySharedLocation(normalizedPayload);
+
+      if (classified.kind === 'coordinate') {
+        status.textContent = '任意ピンの座標を共有titleから直接取得しました。';
+        showLocation({
+          latitude: classified.latitude,
+          longitude: classified.longitude,
+          method: 'shared-title-coordinate',
+          apiCalled: false,
+        });
+        return;
+      }
+
+      if (classified.kind === 'maps-url') {
+        status.textContent = 'Google Maps URLを公式APIで解決しています…';
+        try {
+          const resolved = await resolveMapsUrl(classified.mapsUrl);
+          status.textContent = 'Google Maps URLから地点座標を取得しました。';
+          showLocation({
+            latitude: resolved.latitude,
+            longitude: resolved.longitude,
+            method: 'maps-url-api',
+            apiCalled: true,
+            placeId: resolved.placeId,
+          });
+        } catch (error) {
+          status.textContent = '地点を確定できませんでした。推測は行いません。';
+          showLocation({
+            latitude: null,
+            longitude: null,
+            method: 'maps-url-api',
+            apiCalled: true,
+            error: error?.message ?? String(error),
+          }, false);
+        }
+        return;
+      }
+
+      status.textContent = '共有内容から地点を確定できませんでした。推測は行いません。';
+      showLocation({
+        latitude: null,
+        longitude: null,
+        method: 'unsupported',
+        apiCalled: false,
+      }, false);
+    }
+
+    function readSharedPayloadFromHash() {
+      const prefix = '#share=';
+      if (!location.hash.startsWith(prefix)) return;
+
+      try {
+        const payload = JSON.parse(decodeURIComponent(location.hash.slice(prefix.length)));
+        history.replaceState(null, '', location.pathname);
+        handleSharedPayload(payload);
+      } catch (error) {
+        status.textContent = '共有データを読み取れませんでした。';
+        showLocation({
+          latitude: null,
+          longitude: null,
+          method: 'invalid-share-payload',
+          apiCalled: false,
+          error: error?.message ?? String(error),
+        }, false);
+      }
+    }
+
+    readSharedPayloadFromHash();
+  </script>
+</body>
+</html>

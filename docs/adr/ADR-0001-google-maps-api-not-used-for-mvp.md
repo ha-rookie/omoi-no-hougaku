@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Superseded by ADR-0004
 
 ## Context
 
@@ -62,13 +62,6 @@ Google Maps Android版では緯度経度のコピー方法が直感的でなく�
 
 ## Validation
 
-PoCで以下のGoogle Maps共有リンクを検証する。
+PoCの結果、API不使用で安定した共有短縮URL解決を行う当初案は成立しなかった。一方、Web Share Targetでは任意ピンの緯度経度を直接取得でき、名称付き施設はMaps Grounding Lite + Places API (New)で公式に解決できることを確認した。
 
-- 市区町村
-- 国内住所
-- 海外住所
-- 有名施設
-- 店舗・病院等の施設
-- 任意地点
-
-少なくとも主要パターンで緯度・経度を取得でき、取得失敗時に明示的なエラーを返せることを確認する。
+このため本判断はADR-0004で置き換える。地図UIをアプリ内へ組み込まない方針と、地点探索をGoogle Mapsへ任せる考え方は継続する。

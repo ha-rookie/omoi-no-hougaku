@@ -6,58 +6,66 @@
 
 ## 2. Architecture Goals
 
-- ARCH-001: コア体験をブラウザ中心で成立させ、登録地点・表示名をサーバーDBへ保存しない
-- ARCH-002: Google Maps APIへ依存せず、外部地図は地点探索の補助として利用する
+- ARCH-001: コア体験をブラウザ/PWA中心で成立させ、登録地点・表示名をサーバーDBへ保存しない
+- ARCH-002: 地点探索はGoogle Mapsへ任せ、アプリ内へ地図UIを持ち込まない
 - ARCH-003: 地点解析に失敗した場合は推測で補完せず、ユーザーに失敗を明示する
 - ARCH-004: 方位角計算をクライアント内の純粋ロジックとして分離し、テスト可能にする
-- ARCH-005: Google Maps短縮URLの展開だけをPages Functionへ限定し、地点情報のサーバー保存を行わない
+- ARCH-005: 任意ピンは共有titleの座標を端末内で確定し、外部APIへ送らない
+- ARCH-006: 名称付き施設だけ同一origin Pages Function経由でGoogle公式APIを利用し、API keyをBrowserへ露出しない
+- ARCH-007: Android Google Maps → Web Share TargetをMVPの地点登録主導線とする
 
 ## 3. System Context
 
 ```text
-User / Smartphone Browser
+Android Google Maps
       |
+      | Web Share Target
       v
-想いの方角 Web App
+想いの方角 PWA / Browser
+      |
+      +--> share title が lat,lng
+      |      -> client validation
+      |      -> PlaceCandidate
+      |
+      +--> share text/url が maps.app.goo.gl
+      |      -> POST /api/resolve-location
+      |           |
+      |           +--> Maps Grounding Lite ResolveMapsUrls
+      |           |        -> Place ID
+      |           +--> Places API (New) Place Details
+      |                    -> latitude / longitude
       |
       +--> Browser Geolocation
-      |
       +--> Device Orientation
-      |
       +--> localStorage (max 5 places)
-      |
-      +--> Google Maps (external app/site, API not used)
-      |
-      +--> Cloudflare Pages Function /api/resolve-map
-              |
-              +--> maps.app.goo.gl redirect resolution only
 
 GitHub
-  |
-  +--> CI / Build / Review
-  |
-  v
-Cloudflare Pages + Pages Functions
+  -> CI / Review
+  -> Cloudflare Pages + Pages Functions
 ```
+
+登録済み地点の表示・方位計算ではGoogle APIを呼ばない。
 
 ## 4. Deployment Architecture
 
 | ID | Component | Platform | Responsibility | Production | Preview |
 | --- | --- | --- | --- | --- | --- |
-| ARCH-010 | Frontend | Cloudflare Pages | UI、地点管理、方位角計算、端末センサー連携 | Production branch | PR Preview |
-| ARCH-011 | Short URL Resolver | Cloudflare Pages Functions | `maps.app.goo.gl` のredirectを検証し、確実な座標だけ返す | `/api/resolve-map` | 同一Route |
+| ARCH-010 | Frontend PWA | Cloudflare Pages | UI、Share Target受信、地点管理、方位角計算、端末センサー連携 | Production branch | PR Preview |
+| ARCH-011 | Location Resolver | Cloudflare Pages Functions | 名称付き施設の共有URLをGoogle公式APIでPlace ID→座標へ解決 | `/api/resolve-location` | 同一Route |
 | ARCH-012 | Data Store | Browser localStorage | 最大5地点の端末内保存 | User device | Preview originとは別Storage |
 | ARCH-013 | External Map | Google Maps | ユーザーによる地点探索・共有 | External | External |
+| ARCH-014 | Maps URL Resolution | Maps Grounding Lite | `maps.app.goo.gl`をPlace IDへ解決 | External Google API | External Google API |
+| ARCH-015 | Place Details | Places API (New) | Place IDから必要最小限の座標を取得 | External Google API | External Google API |
+| ARCH-016 | Secret Store | Cloudflare Pages Secret | Google API key保持 | Production Secret | Preview/Production運用方針に従う |
 
 ### Environment Separation
 
 - ProductionとPreviewのoriginが異なるためlocalStorageも自動的に分離される
 - PreviewからProductionの登録地点を読み書きしない
 - Pages FunctionはDB・KV・D1等の永続Bindingを持たない
-- Production/Previewとも地点URL、地点名、座標をApplication logへ出さない
-- 環境差分がある場合はこの文書と `CLOUDFLARE_SETUP.md` の役割を分ける
-  - なぜ分けるか・何を分けるか → 本文書
-  - 具体的な設定手順 → Cloudflare Setup
+- Production/Previewとも地点URL、地点名、Place ID、座標をApplication logへ出さない
+- Google API keyはRepository・HTML・Browser JavaScriptへ配置しない
+- 環境差分の具体設定は `CLOUDFLARE_SETUP.md` に分離する
 
 ## 5. Runtime Data Flow
 
@@ -72,26 +80,39 @@ User selects saved place
   -> render destination direction
 ```
 
-### 5.2 新しい地点を登録
+### 5.2 新しい地点を登録: 任意ピン
 
 ```text
-User searches place in Google Maps
-  -> user copies/shares Google Maps link
-  -> 想いの方角 receives pasted/shared text
-  -> validate supported URL/input format
-  -> direct Google Maps URL: parse in browser
-  -> maps.app.goo.gl short URL:
-       POST /api/resolve-map
-       -> Pages Function validates scheme/host/redirect count
-       -> follows Google redirect manually
-       -> extracts only reliable coordinates
-       -> returns latitude/longitude/sourceType
-  -> user confirms location + enters display name
-  -> validate latitude/longitude/name
-  -> save locally if stored count < 5
+User long-presses arbitrary point in Google Maps
+  -> Share -> 想いの方角
+  -> Web Share Target receives title/text/url
+  -> title matches strict lat,lng
+  -> validate latitude [-90,90] / longitude [-180,180]
+  -> no Google API call
+  -> user confirms + enters private display name
+  -> save locally when count < 5
 ```
 
-地点解析が失敗した場合は登録処理を止める。架空座標や推測値で成功扱いしない。
+### 5.3 新しい地点を登録: 名称付き施設
+
+```text
+User opens named place in Google Maps
+  -> Share -> 想いの方角
+  -> Web Share Target receives title/text/url
+  -> title is not strict lat,lng
+  -> extract supported maps.app.goo.gl URL from text/url
+  -> POST /api/resolve-location
+       -> validate request/origin/URL host
+       -> Maps Grounding Lite ResolveMapsUrls
+       -> obtain Place ID
+       -> Places API (New) Place Details with minimal fields
+       -> return latitude/longitude/placeId
+  -> validate coordinates in client
+  -> user confirms + enters private display name
+  -> save locally when count < 5
+```
+
+地点解析が失敗した場合は登録処理を止める。短縮URLから任意ピン座標を推測したり、近隣Placeの座標を代用したりしない。
 
 ## 6. Build / Update Data Flow
 
@@ -112,66 +133,73 @@ GitHub branch
 
 | ID | Service | Purpose | Runtime Dependency | Auth | Failure Behavior |
 | --- | --- | --- | --- | --- | --- |
-| IF-001 | Google Maps | 地点探索・共有リンク生成 | No for saved-place viewing / Yes during place discovery | None from this app | ユーザーへ外部地図が開けない旨を表示 |
-| IF-002 | Browser Geolocation | 現在地取得 | Yes for direction calculation | User permission | 方角計算を行わず、許可/設定案内を表示 |
-| IF-003 | Device Orientation | 端末方位取得 | Yes for compass-style UI; bearing text may degrade gracefully | User permission / browser dependent | 方位角の数値・方角名のみへ縮退 |
-| IF-004 | Cloudflare Pages | Static hosting | Yes | Deploy integration | サイト自体が利用不可 |
-| IF-005 | Pages Function URL Resolver | Google Maps短縮共有URLの一時展開 | Yes only when adding a short-link place | Same-origin browser request | 新規地点登録のみ不可。保存済み地点は利用可能 |
+| IF-001 | Google Maps | 地点探索・共有 | 新規地点追加時 | Google Maps側 | 保存済み地点は利用可能 |
+| IF-002 | Browser Geolocation | 現在地取得 | 方角計算時 | User permission | 方角計算を停止し案内表示 |
+| IF-003 | Device Orientation | 端末方位取得 | compass-style UI | User permission / browser dependent | 方位角・方角名表示へ縮退 |
+| IF-004 | Cloudflare Pages | Static PWA hosting | Yes | Deploy integration | サイト自体が利用不可 |
+| IF-005 | Web Share Target / Service Worker | Google Maps共有POSTを端末側で受信 | 新規地点追加時 | PWA install / browser capability | 手動導線は将来fallback候補 |
+| IF-006 | `POST /api/resolve-location` | 名称付き施設の共有URLを座標へ解決 | 名称付き施設追加時のみ | Same-origin + server secret | 当該新規登録のみ失敗 |
+| IF-007 | Maps Grounding Lite | Maps URL→Place ID | 名称付き施設追加時のみ | Google API key | 新規登録を失敗扱い |
+| IF-008 | Places API (New) | Place ID→座標 | 名称付き施設追加時のみ | Google API key | 新規登録を失敗扱い |
 
 ## 8. Trust Boundaries / Security
 
-- Browserで保持してよい情報: ユーザーが登録した表示名、緯度、経度、schema version
-- Browserへ出してはいけない情報: Secrets / tokens。MVPではRuntime Secretsは原則不要
-- Server入力: `https://maps.app.goo.gl/...` のみ
-- Server側検証: HTTPS、入力host、各redirect先host、URL長、body size、redirect上限
-- SSRF対策: allowlist外hostへredirectしない。汎用URL fetch proxyにしない
-- Client入力検証: 緯度 -90〜90、経度 -180〜180、表示名長、URL形式を検証する
-- Same-origin: BrowserからのResolver利用はOriginがある場合に同一originのみ許可する
-- 認証・認可: MVPではユーザー認証なし。Resolverは機能限定・入力限定で公開する
-- 個人情報: 登録地点・表示名はセンシティブ情報として扱い、Analyticsへ送らない
-- Logging: request body、共有URL、地点名、座標をApplication logへ出さない
+- Browserで保持してよい情報: 表示名、緯度、経度、作成時刻、schema version
+- Browserへ出してはいけない情報: Google API keyその他Secret
+- Web Share Target: POSTをService Workerで受け、共有本文をURL queryへ載せない。端末内の一時fragmentは表示後に消去する
+- 任意ピン: valid `lat,lng` titleならServerへ共有URLを送らない
+- Server入力: 名称付き施設解決時の `https://maps.app.goo.gl/...` のみ
+- Server側検証: HTTPS、exact host、URL length、body size、same-origin Origin when present
+- 外部接続: Pages Functionは固定のGoogle API endpointだけを呼ぶ。汎用fetch proxyにしない
+- Client入力検証: 緯度 -90〜90、経度 -180〜180、表示名長、共有URL形式を検証する
+- 個人情報: 登録地点・表示名はセンシティブ情報として扱いAnalyticsへ送らない
+- Logging: request body、共有URL、Place ID、地点名、座標をApplication logへ出さない
 - Cache: Resolver responseは `Cache-Control: no-store`
 
 ## 9. Availability / Failure Strategy
 
 | Failure | User-visible behavior | Fallback | Logging/Detection |
 | --- | --- | --- | --- |
-| Google Mapsを開けない | 地点探索ができない旨を表示 | 既存保存地点は利用可能 | Client error eventは地点情報を含めない |
-| 共有URLを解析できない | 「場所を読み取れませんでした」と表示 | 将来の座標手入力をfallback候補とする | error codeのみ。URL本文は記録しない |
-| Pages Function / Google redirect失敗 | 短縮URLを読み取れない旨を表示 | direct URL/既存地点は利用可能 | error codeのみ。URL本文は記録しない |
-| Geolocation denied/unavailable | 現在地が取得できない旨を表示 | 方角表示を停止 | Permission state / error codeのみ |
-| Device Orientation unavailable | コンパス追従不可を表示 | 方位角・方角名の表示へ縮退 | Capabilityのみ |
-| localStorage unavailable/corrupt | 保存不可または初期化確認を表示 | 一時利用のみを検討 | ローカルエラー |
+| Google Mapsを開けない | 地点探索ができない旨を表示 | 保存済み地点は利用可能 | 地点情報なしのClient errorのみ |
+| Web Share Target unavailable | 共有先として使えない旨を表示 | 将来、貼り付け/座標入力をfallback候補 | capabilityのみ |
+| 共有title座標が不正 | 場所を確定できない旨を表示 | 推測しない | error codeのみ |
+| Maps Grounding Lite失敗 | 名称付き施設を読み取れない旨を表示 | 再試行/別地点選択 | error categoryのみ |
+| Places API失敗 | 地点座標を取得できない旨を表示 | 再試行/別地点選択 | error categoryのみ |
+| Geolocation denied/unavailable | 現在地が取得できない旨を表示 | 方角表示を停止 | Permission/error codeのみ |
+| Device Orientation unavailable | コンパス追従不可を表示 | 方位角・方角名の表示へ縮退 | capabilityのみ |
+| localStorage unavailable/corrupt | 保存不可または初期化確認を表示 | 一時利用は別判断 | ローカルエラー |
 | Analytics unavailable | Core機能へ波及させない | 何もしない | 該当なし |
-
-架空値を生成して正常に見せるより、取得失敗・データ不足を明示する。
 
 ## 10. Observability
 
 - Cloudflare Web Analytics: 導入可否は別Issueで判断
-- Application events: ページ表示、地点登録成功/失敗、位置情報許可結果など必要最小限。地点名・緯度経度・共有URLを送らない
-- Resolver logs: 入力URL・取得座標をconsole出力しない。必要ならerror code/categoryのみ
+- Application eventsを導入する場合も、地点名・緯度経度・共有URL・Place IDを送らない
+- Pages Function logsはerror code/categoryまで。入力URLや座標をconsole出力しない
+- Google Cloud側でAPI利用量・課金状態を確認する
 - Deployment history: GitHub / Cloudflare
 - Privacy boundary: 「どこを想っているか」が分析基盤へ流れないことを優先する
 
 ## 11. Performance / Cost
 
-- Performance budget: JavaScript/CSSを必要最小限にし、スマートフォンで素早く起動できることを優先する
-- Cloudflare無料枠/費用上限: 初期利用規模では無料枠運用を目標とする。最新条件はリリース前に公式情報確認
-- API費用上限: Google Maps Platform APIはMVPでは0円（不使用）
-- Resolver: 地点追加時のみ呼び出し、保存済み地点表示では呼び出さない
-- Asset/cache strategy: Static assetsをCloudflare/CDNで配信。センシティブな地点データはcache対象にしない
+- JavaScript/CSSを必要最小限にし、スマートフォンで素早く起動できることを優先する
+- 任意ピン経路はGoogle APIを呼ばない
+- 名称付き施設だけ地点追加時に2段階のGoogle API呼び出しを行う
+- Places API (New)は必要最小フィールド（id/location）だけ要求する
+- 保存済み地点表示・方位計算ではGoogle APIを呼ばない
+- Google APIの価格・無料利用枠・クレジット等は変更可能性があるため設計書へ固定金額を書かず、Production release前に公式コンソール/ドキュメントで確認する
+- API予算アラート/上限設計はTBD-006としてProduction release前に人間判断する
 
 ## 12. Architecture Decisions
 
 重要な選択は `adr/` に残す。
 
-- ADR-0001: MVPではGoogle Maps APIを組み込まない
-- ADR-0002: 保存先は端末内のみ、最大5か所とする
-- ADR-0003: Google Maps短縮URLはPages Functionで一時展開する
-- PWA採用: TBD
+- ADR-0001: Google Maps API不使用方針 — ADR-0004によりSuperseded
+- ADR-0002: 保存先は端末内のみ、最大5か所とする — 継続
+- ADR-0003: Pages Functionで通常redirectを追う方式 — ADR-0004によりSuperseded
+- ADR-0004: Web Share Target + 任意ピン直接座標 + 名称付き施設公式API解決をMVP主導線とする
 
 ## 13. 未決事項
 
-- TBD-ARCH-004: PWA/Web Share TargetをどのReleaseへ含めるか
-- TBD-ARCH-005: Resolverの本番Rate Limitが必要になる利用規模の閾値
+- TBD-ARCH-005: API利用量が増えた場合のRate Limit方式
+- TBD-ARCH-006: Production release前のGoogle API予算アラート/上限
+- TBD-ARCH-007: Android以外でWeb Share Targetが使えない場合の正式fallback UX

@@ -26,17 +26,19 @@
 
 MVPでは以下を満たせば成功とする。
 
-1. ユーザーがGoogle Maps等で見つけた地点を登録できる
-2. 登録した地点を最大5か所まで端末内へ保存できる
-3. 登録地点を選ぶと、現在地から見た方角を表示できる
-4. 端末の向きと目的地の方向関係をスマートフォン上で理解できる
-5. 登録地点や表示名をサーバーDBへ保存しない
-6. Google Maps APIを利用せずにMVPを成立させる
+1. ユーザーがGoogle Mapsで見つけた地点を「共有 → 想いの方角」で登録できる
+2. 任意ピンはGoogle APIへ送らず、共有titleの正確な緯度経度を利用できる
+3. 名称付き施設は必要時だけGoogle公式APIで座標へ解決できる
+4. 登録した地点を最大5か所まで端末内へ保存できる
+5. 登録地点を選ぶと、現在地から見た方角を表示できる
+6. 端末の向きと目的地の方向関係をスマートフォン上で理解できる
+7. 登録地点や表示名をサーバーDBへ保存しない
 
 ## In Scope
 
-- Google Maps共有リンクを利用した地点登録PoC
-- 緯度・経度の検証
+- Android Google MapsからPWA Web Share Targetへの地点共有
+- 任意ピン共有titleの緯度・経度検証と直接採用
+- 名称付き施設のMaps Grounding Lite + Places API (New)による座標解決
 - 地点への任意の表示名設定
 - 最大5地点のlocalStorage保存
 - 登録地点の一覧、選択、削除
@@ -44,8 +46,8 @@ MVPでは以下を満たせば成功とする。
 - 現在地から目的地までの方位角計算
 - Device Orientationを利用した方角UI
 - スマートフォン中心のレスポンシブUI
-- Cloudflare Pagesへの公開
-- PWA化の検討
+- PWA
+- Cloudflare Pages + Pages Functionsへの公開
 
 ## Out of Scope
 
@@ -55,17 +57,19 @@ MVPでは以下を満たせば成功とする。
 - 登録地点のサーバーDB保存
 - ログイン、アカウント管理
 - 複数端末同期
-- Google Maps API / Places APIの組み込み
+- Google Maps地図UIのアプリ内埋め込み
 - 無制限の場所コレクション
 - 他人の現在位置の追跡
 
 ## Technology
 
-- Frontend: HTML / CSS / JavaScriptを基本とする。採用構成は実装前に確定する
-- Runtime: Web Browser
-- Hosting: Cloudflare Pagesを第一候補とする
+- Frontend: HTML / CSS / JavaScript ES Modules
+- Runtime: Android Chrome/PWAを主要対象とするWeb Runtime
+- Hosting: Cloudflare Pages + Pages Functions
 - Data Store: Browser localStorage（MVP）
-- External Map: Google Mapsは外部アプリ/サイトとして利用し、Maps APIは利用しない
+- External Map: Google Mapsは地点探索・共有元として利用する
+- External APIs: 名称付き施設の登録時のみMaps Grounding Lite + Places API (New)
+- Secrets: Google API keyはCloudflare Secretで管理しBrowserへ露出しない
 - Repository: `ha-rookie/omoi-no-hougaku`
 
 ## Product Principles
@@ -73,16 +77,17 @@ MVPでは以下を満たせば成功とする。
 - 「場所を探す」より「その場所を向く」ことを中心価値にする
 - 必要以上にユーザーの想いを収集しない
 - 誰を想っているかをサービス側で知る必要のない設計を優先する
+- 任意ピンは可能な限り端末内で処理する
 - 機能追加よりも、静かで邪魔をしない体験を優先する
 - 失敗時に推測した地点を登録せず、読み取り失敗を明示する
 
 ## Human Decision Points
 
 - プロダクトの言葉遣いとセンシティブさ
-- Google Maps共有リンク方式の採否
 - UIの違和感と受容性
 - 位置情報許可の説明文
-- PWA採用と共有ターゲット機能の採否
+- Google API利用量・課金設定・予算アラート
+- Web Share Target非対応環境のfallback
 - Production release
 - 重要なmerge
 - Asset最終承認

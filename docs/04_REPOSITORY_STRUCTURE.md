@@ -25,26 +25,29 @@
 │  ├─ 06_REQUIREMENTS_TRACEABILITY.md
 │  ├─ design/
 │  └─ adr/
-├─ poc/
-│  └─ google-maps-share-link/
-│     ├─ index.html
-│     ├─ resolver.mjs
-│     ├─ resolver.test.mjs
-│     └─ README.md
-├─ src/                 # 本実装開始時に採用する場合
-├─ public/              # static public assets / static appの場合
+├─ public/                     # MVP本番PWAの静的Source兼Deploy対象
+│  ├─ index.html
+│  ├─ manifest.webmanifest
+│  ├─ sw.js
 │  ├─ assets/
-│  └─ data/
-├─ functions/           # Cloudflare Pages Functionsを使う場合
-├─ workers/             # Workersを分離する場合
-├─ scripts/             # build/data update/maintenance
+│  └─ js/
+│     ├─ app/
+│     ├─ core/
+│     ├─ infrastructure/
+│     └─ ui/
+├─ functions/                  # Cloudflare Pages Functions
+│  ├─ api/
+│  └─ _shared/
+├─ poc/
+│  └─ google-maps-share-link/  # 技術検証履歴。Productionから参照しない
 ├─ tests/
-├─ package.json         # Node系を使う場合
-├─ wrangler.jsonc       # Cloudflare configを使う場合
+├─ scripts/                    # 必要時のみ
 ├─ AGENTS.md
 ├─ CHANGELOG.md
 └─ README.md
 ```
+
+MVPではbundle/build toolを必須にせず、`public/` 配下をES Modulesで構成する。将来bundlerを導入する場合は別Design変更とする。
 
 ## 3. Directory Responsibilities
 
@@ -54,19 +57,20 @@
 | `docs/` | 設計の正本 | Source | 原則No |
 | `docs/design/` | 視覚設計・Design Preview素材 | Source | Design Previewのみ |
 | `docs/adr/` | 設計判断履歴 | Source | No |
-| `poc/` | 技術成立性を検証する一時的/実験的コード | Source | No。承認後に本実装へ移植する |
-| `src/` | Application source | Source | Build後Yes |
-| `public/` | 静的配信対象 | Source/Generatedを明記 | Yes |
+| `public/` | 本番PWAの静的Source | Source | Yes |
 | `public/assets/` | 承認済みAsset | Source | Yes |
-| `public/data/` | 公開静的データ | Source/Generatedを明記 | Yes |
-| `functions/` | Pages Functions | Source | Yes |
-| `workers/` | Workers source | Source | Yes |
-| `scripts/` | 更新・生成・保守 | Source | No |
+| `public/js/core/` | 純粋ロジック。共有分類、座標検証、方位計算等 | Source | Yes |
+| `public/js/app/` | Use Case / Application orchestration | Source | Yes |
+| `public/js/infrastructure/` | localStorage、Share Target連携、Geolocation、Orientation、Resolver Client | Source | Yes |
+| `public/js/ui/` | DOM/Screen rendering | Source | Yes |
+| `functions/` | Pages Functions。Google API Secretを使うServer側処理 | Source | Yes |
+| `poc/` | 技術成立性の検証履歴 | Source | No。Productionコードからimportしない |
 | `tests/` | Test code | Source | No |
+| `scripts/` | 更新・生成・保守 | Source | No |
 
 ## 4. Source vs Generated
 
-現時点のPoC成果物はすべてSourceであり、自動生成物はない。
+MVP本番アプリは`public/`配下のSourceをそのままDeployする。現時点で本番Sourceの自動生成物は持たない。
 
 生成物をRepositoryへcommitする場合は以下を記録する。
 
@@ -85,66 +89,78 @@
 
 - Directory/file名: 原則lowercase + kebab-case / 技術慣習に従う
 - Test: 実装との対応が分かる名前
-- Data: schema・year・area等の分割キーを設計で固定
 - Asset: 内容が分かる安定名。承認後の意味のないrenameを避ける
 - ADR: `ADR-0001-short-title.md`
 - PoC: `poc/<検証対象>/` とし、本番コードと混在させない
+- API endpoint file: route名と責務が一致する名前
 
 ## 6. Dependency Direction and Placement
 
-ファイルを「種類」だけで置かず、責務と依存方向で配置する。
+- 純粋計算・分類 → `public/js/core/`
+- Use Case → `public/js/app/`
+- DOM操作 → `public/js/ui/`
+- Browser API / Storage / same-origin API client → `public/js/infrastructure/`
+- Runtime endpoint / Google API client → `functions/`
+- 視覚設計検証HTML → `docs/design/`
+- 技術成立性検証 → `poc/`
 
-- 純粋計算 → Core/Domain
-- DOM操作 → UI
-- API/Storage → Infrastructure
-- 定期データ更新 → scripts/
-- Runtime endpoint → functions/ or workers/
-- 視覚設計検証HTML → docs/design/
-- 技術成立性検証 → poc/
-- 本番Asset → public/assets/
-
-PoCで得たコードを本番へ採用する場合は、そのまま参照し続けず、承認済みArchitectureに従って `src/` 等へ移植し、PoCとの責務を分離する。
+Productionコードから`poc/`をimportしない。PoC成果は承認済みArchitectureに合わせてProduction配置へ移植する。
 
 ## 7. Forbidden Content
 
 Repositoryへcommitしない。
 
-- API key
-- token
-- private key
-- password
+- Google API key
+- token / private key / password
 - 本番秘密値
 - 不要な個人情報
 - ユーザーが検証に使った具体的なセンシティブ地点・表示名
 - ローカル環境固有の秘密設定
 - ライセンス上commit不可のAsset
 
-必要な秘密値の「キー名」は設計へ残し、値はSecretsで管理する。
+Secretの「キー名」は設計へ残せるが、値はGitHub/CloudflareのSecretsで管理する。
 
 ## 8. Structure Change Rule
 
 Directory責務や配置を変える場合:
 
 1. 本文書を先に更新
-2. 影響するimport/path/build/deploy/cacheを確認
+2. 影響するimport/path/deploy/cacheを確認
 3. Issueへ移行対象を列挙
-4. CIで旧パス残存・新パス不足を検証
+4. CIで旧パス参照・新パス不足を検証
 5. Preview確認
 6. 人間承認後にMerge
 
 ## 9. App固有構成
 
+### `public/`
+
+本番MVPのSource兼Cloudflare Pages deploy directory。
+
+- `index.html`: Home / Add Guide / Confirm / Directionの入口
+- `manifest.webmanifest`: PWA + Web Share Target定義
+- `sw.js`: Web Share Target POST受信、必要最小限のService Worker処理
+- `js/core/`: `SharedPayloadClassifier`, `CoordinateValidator`, `BearingCalculator`, `DirectionLabeler`
+- `js/app/`: `ReceiveSharedPlaceUseCase`, `RegisterPlaceUseCase`, `ShowDirectionUseCase`
+- `js/infrastructure/`: `PlaceRepository`, `GeolocationAdapter`, `OrientationAdapter`, `LocationResolverClient`
+- `js/ui/`: Screen/DOM rendering
+
+### `functions/`
+
+本番Pages Functions。
+
+- `api/resolve-location.js`: same-origin endpoint
+- `_shared/maps-grounding-resolver.js`: Maps URL→Place ID
+- `_shared/places-details.js`: Place ID→座標
+
+旧PoC endpointは本番MVPで不要になった時点で別Cleanup Issueにより削除する。設計変更PRで履歴を消さない。
+
 ### `poc/google-maps-share-link/`
 
-Issue #2専用の技術検証。
-
-- `index.html`: Android/Chrome等で共有URLを貼り付け、Client-only解決可否を確認する手動PoC画面
-- `resolver.mjs`: Google Maps入力の検証、座標抽出、短縮URL解決の実験ロジック
-- `resolver.test.mjs`: Node.js標準機能だけで行う純粋ロジック/異常系テスト
-- `README.md`: 検証方法、境界、実機確認項目
-
-このPoCはProduction Artifactではない。Client-only方式の採否が確定した後、本実装の配置を改めて決定する。
+Issue #2以降の技術検証履歴。Share Target、Maps Grounding Lite、Places APIの成立性証跡を保持するがProduction Artifactではない。
 
 ### CI
 
-`.github/workflows/poc-tests.yml` でPoCのNode.jsテストをPR時に実行する。
+- PR: Production core/unit tests、Function tests、manifest/service worker validation
+- Preview: `public/` + `functions/` をCloudflare Pages PreviewへDeploy
+- Production: 人間承認後のmain mergeで`public/` + `functions/`をDeploy

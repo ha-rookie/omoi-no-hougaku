@@ -1,6 +1,6 @@
 # ADR-0003: Google Maps短縮URLはPages Functionで一時展開する
 
-- Status: Accepted
+- Status: Superseded by ADR-0004
 - Date: 2026-09-13
 - Related: Issue #2, Issue #14
 
@@ -8,9 +8,9 @@
 
 Android Chrome実機PoCで `https://maps.app.goo.gl/...` をブラウザから直接 `fetch` すると `Failed to fetch` となり、Client-onlyで短縮URLのredirect先を取得する方式は主導線として成立しなかった。
 
-一方、Google Maps API / Places APIはMVPで利用せず、地点探索はGoogle Mapsアプリ側へ任せる方針を維持したい。
+一方、Google Maps API / Places APIはMVPで利用せず、地点探索はGoogle Mapsアプリ側へ任せる方針を維持したいと考えていた。
 
-Cloudflare PagesのDirect UploadをWranglerから行う構成では、Repository rootの `/functions` をPages Functionsとして同時Deployできる。Pages FunctionsはファイルベースRoutingを利用できるため、短縮URL展開だけの最小Endpointを追加できる。
+Cloudflare PagesのDirect UploadをWranglerから行う構成では、Repository rootの `/functions` をPages Functionsとして同時Deployできるため、短縮URL展開だけの最小Endpointを追加する案を採用した。
 
 ## Decision
 
@@ -33,8 +33,6 @@ Cloudflare PagesのDirect UploadをWranglerから行う構成では、Repository
 短縮URLは展開処理の間だけブラウザからCloudflare Pages Functionへ送信される。完全なClient-onlyではないため、サーバー処理を一切行わない設計よりPrivacy boundaryは広がる。
 
 ただし、ログ出力・DB保存・Analytics送信を行わず、Endpoint用途を短縮URL展開に限定することで収集範囲を最小化する。
-
-このTrade-offは、Android実機でClient-only方式が不成立だったことを確認した後、人間承認を得て採用した。
 
 ## Security
 
@@ -68,8 +66,14 @@ Android Chrome実機で `Failed to fetch` となったため主導線として�
 
 ### Google Maps Platform / Places API
 
-MVP方針で不採用。API key、利用設定、費用管理を増やさずに成立させる。
+当時のMVP方針で不採用としていた。
 
 ### 緯度経度の手入力のみ
 
-API不要で堅牢だが、Android版Google Mapsで座標コピーが直感的ではなく、主導線としての操作負荷が高いためfallback候補に留める。
+API不要で堅牢だが、Android版Google Mapsで座標コピーが直感的ではなく、主導線としての操作負荷が高いためfallback候補に留めた。
+
+## Superseded Reason
+
+実機でPages FunctionからGoogle通常redirectを追跡するとGoogle側`/sorry`へ遷移し、安定した主導線として成立しなかった。CAPTCHA/anti-bot回避は行わない。
+
+その後、Web Share Targetで任意ピンの緯度経度を共有`title`から直接取得できること、名称付き施設はMaps Grounding Lite + Places API (New)で解決できることを確認したため、ADR-0004へ置き換える。

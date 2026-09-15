@@ -29,8 +29,19 @@
     <p>任意ピンは共有タイトルの緯度経度を直接採用し、施設・住所は共有URLをGoogle公式APIで解決します。</p>
 
     <section class="card">
+      <h2>共有受信準備</h2>
+      <div id="sw-status" class="status">Service Workerを確認中…</div>
+      <pre id="sw-diagnostic">{
+  "serviceWorker": "checking",
+  "controller": false
+}</pre>
+      <p class="muted">ここが ready になってからGoogle Mapsへ戻り、共有してください。共有POSTはService Workerが端末内で受け取ります。</p>
+    </section>
+
+    <section class="card">
       <h2>使い方</h2>
       <ol>
+        <li>この画面でService Workerが ready になることを確認</li>
         <li>Google Mapsで地点を開く</li>
         <li>「共有」を押す</li>
         <li>「想いの方角 Share PoC」を選ぶ</li>
@@ -65,10 +76,71 @@
     const status = document.querySelector('#status');
     const locationResult = document.querySelector('#location');
     const payloadResult = document.querySelector('#payload');
+    const swStatus = document.querySelector('#sw-status');
+    const swDiagnostic = document.querySelector('#sw-diagnostic');
 
     function showLocation(data, ok = true) {
       status.className = `status ${ok ? 'ok' : 'error'}`;
       locationResult.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function showServiceWorkerDiagnostic(data, ok = true) {
+      swStatus.className = `status ${ok ? 'ok' : 'error'}`;
+      swDiagnostic.textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function waitForController(timeoutMs = 3000) {
+      if (navigator.serviceWorker.controller) return true;
+
+      return new Promise((resolve) => {
+        let settled = false;
+        const finish = (value) => {
+          if (settled) return;
+          settled = true;
+          navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+          resolve(value);
+        };
+        const onControllerChange = () => finish(Boolean(navigator.serviceWorker.controller));
+        navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+        setTimeout(() => finish(Boolean(navigator.serviceWorker.controller)), timeoutMs);
+      });
+    }
+
+    async function registerServiceWorker() {
+      if (!('serviceWorker' in navigator)) {
+        swStatus.textContent = 'このブラウザはService Workerに対応していません。';
+        showServiceWorkerDiagnostic({
+          serviceWorker: 'unsupported',
+          controller: false,
+        }, false);
+        return false;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.register('/sw-share-target.js', { scope: '/' });
+        await registration.update();
+        await navigator.serviceWorker.ready;
+        const controlled = await waitForController();
+
+        swStatus.textContent = controlled
+          ? '共有受信の準備ができました。Google Mapsから共有できます。'
+          : 'Service Workerは登録済みです。いったん画面を閉じて再度開いてください。';
+        showServiceWorkerDiagnostic({
+          serviceWorker: 'ready',
+          scope: registration.scope,
+          controller: controlled,
+          displayModeStandalone: window.matchMedia('(display-mode: standalone)').matches,
+        }, controlled);
+        return controlled;
+      } catch (error) {
+        swStatus.textContent = 'Service Workerの登録に失敗しました。';
+        showServiceWorkerDiagnostic({
+          serviceWorker: 'failed',
+          controller: false,
+          message: error?.message ?? String(error),
+        }, false);
+        return false;
+      }
     }
 
     async function resolveMapsUrl(mapsUrl) {
@@ -159,6 +231,7 @@
       }
     }
 
+    await registerServiceWorker();
     readSharedPayloadFromHash();
   </script>
 </body>

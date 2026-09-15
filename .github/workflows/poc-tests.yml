@@ -37,6 +37,8 @@ jobs:
           node --check functions/_shared/maps-grounding-resolver.js
           node --check functions/api/resolve-location.js
           node --check functions/_shared/places-details.js
+          grep -Fq "navigator.serviceWorker.register('/sw-share-target.js'" poc/google-maps-share-link/share-location-poc.html
+          grep -Fq "await navigator.serviceWorker.ready" poc/google-maps-share-link/share-location-poc.html
       - name: Run resolver tests
         run: |
           node poc/google-maps-share-link/resolver.test.mjs

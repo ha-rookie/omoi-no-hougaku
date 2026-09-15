@@ -64,3 +64,23 @@ jobs:
           node tests/maps-grounding-resolver.test.mjs
           node tests/places-details.test.mjs
           node tests/share-location-resolver.test.mjs
+      - name: Write preview build marker
+        if: github.event_name == 'pull_request'
+        run: printf '{"buildSha":"%s"}\n' "$GITHUB_SHA" > public/build.json
+      - name: Deploy MVP Preview
+        if: github.event_name == 'pull_request'
+        id: preview
+        uses: cloudflare/wrangler-action@v4
+        env:
+          MAPS_GROUNDING_API_KEY: ${{ secrets.MAPS_GROUNDING_API_KEY }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          preCommands: |
+            test -n "$MAPS_GROUNDING_API_KEY"
+            printf '%s' "$MAPS_GROUNDING_API_KEY" | npx wrangler pages secret put MAPS_GROUNDING_API_KEY --project-name=omoi-no-hougaku
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=pr-${{ github.event.pull_request.number }} --commit-dirty=true
+      - name: Show preview URL
+        if: github.event_name == 'pull_request'
+        run: echo "Preview URL: ${{ steps.preview.outputs.deployment-url }}"

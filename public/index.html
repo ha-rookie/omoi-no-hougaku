@@ -66,6 +66,12 @@
       <div id="direction-content" hidden>
         <p id="target-bearing-primary" class="target-bearing-primary">目標方位 —</p>
 
+        <div class="guidance-mode-switch" role="group" aria-label="方角表示の切替">
+          <button id="mode-compass" class="guidance-mode-button" type="button" aria-pressed="true">コンパス</button>
+          <button id="mode-map" class="guidance-mode-button" type="button" aria-pressed="false">地図</button>
+        </div>
+
+        <div id="compass-mode-panel">
         <div id="direction-compass" class="direction-compass" aria-label="目的地を上に固定したコンパス">
           <div id="compass-rotor" class="compass-rotor" aria-hidden="true">
             <span class="compass-cardinal compass-cardinal--north"><span>北</span></span>
@@ -99,6 +105,18 @@
         </dl>
 
         <p id="compass-fallback-note" class="muted" hidden></p>
+        </div>
+
+        <div id="map-mode-panel" class="map-mode-panel" hidden>
+          <div class="map-overview-header">
+            <strong id="map-mode-label">地図</strong>
+            <span id="map-summary" class="muted"></span>
+          </div>
+          <div id="map-overview" class="map-overview" aria-live="polite">
+            <p class="muted">地図を準備しています…</p>
+          </div>
+          <p class="map-overview-note muted">道路案内ではなく、現在地と目的地の位置関係を見るための地図です。</p>
+        </div>
       </div>
     </section>
 

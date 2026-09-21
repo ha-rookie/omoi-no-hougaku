@@ -1,6 +1,6 @@
 # ADR-0006: 方角ガイドはYohai Compassの実績ある方位処理を移植し、地図はsame-origin vector mapで国内/海外を切り替える
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-09-22
 - Decision Owners: Human
 - Related Issue: #51

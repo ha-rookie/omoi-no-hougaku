@@ -41,11 +41,13 @@ let stopHeadingUpdates = null;
 let directionRunId = 0;
 let directionViewMode = 'compass';
 let mapRenderId = 0;
+let alignedForCurrentRun = false;
 
 function stopDirectionRuntime() {
   directionRunId += 1;
   mapRenderId += 1;
   directionViewMode = 'compass';
+  alignedForCurrentRun = false;
   stopHeadingUpdates?.();
   stopHeadingUpdates = null;
   activeDirectionSession = null;
@@ -73,6 +75,18 @@ function applyLatestHeading() {
     activeDeclinationDegrees
   );
   view.renderDirectionHeading(activeDirectionSession);
+
+  if (
+    directionViewMode === 'compass' &&
+    activeDirectionSession.alignment.aligned &&
+    !alignedForCurrentRun
+  ) {
+    alignedForCurrentRun = true;
+    stopHeadingUpdates?.();
+    stopHeadingUpdates = null;
+    latestHeadingReading = null;
+    view.showAligned(activeDirectionSession);
+  }
 }
 
 async function startDirection() {
@@ -83,6 +97,7 @@ async function startDirection() {
   }
 
   stopDirectionRuntime();
+  alignedForCurrentRun = false;
   const runId = directionRunId;
   view.showDirectionLoading(place);
 
@@ -343,6 +358,15 @@ try {
 }
 
 view.onDirectionModeChange(changeDirectionMode);
+
+view.onRestartDirection(() => {
+  void startDirection();
+});
+
+view.onAlignedCloseDirection(() => {
+  stopDirectionRuntime();
+  view.hideDirection();
+});
 
 view.onCloseDirection(() => {
   stopDirectionRuntime();

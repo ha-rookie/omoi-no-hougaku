@@ -556,3 +556,66 @@ input[type="text"] {
   font-size: .68rem;
   line-height: 1.45;
 }
+
+
+/* Direction aligned state */
+
+.aligned-panel {
+  text-align: center;
+}
+
+.aligned-eyebrow {
+  margin: 0 0 6px;
+  color: #166534;
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.aligned-panel h2 {
+  margin-bottom: 18px;
+  font-size: 1.25rem;
+}
+
+.aligned-compass {
+  margin-top: 8px;
+}
+
+.aligned-heading-needle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  width: 4px;
+  height: 34%;
+  border-radius: 999px;
+  background: #262626;
+  transform: translate(-50%, -100%) rotate(0deg);
+  transform-origin: 50% 100%;
+}
+
+.aligned-heading-needle::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-right: 8px solid transparent;
+  border-bottom: 14px solid #262626;
+  border-left: 8px solid transparent;
+  transform: translateX(-50%);
+}
+
+.aligned-copy {
+  margin: 18px 0 8px;
+  font-weight: 700;
+}
+
+.aligned-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.aligned-actions {
+  justify-content: center;
+  margin-top: 18px;
+}

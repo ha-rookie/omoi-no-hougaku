@@ -42,7 +42,7 @@
 | REQ-008 | Google Mapsを外部で開ける | Should | 地点探索のためGoogle Mapsへ遷移できる | Planned |
 | REQ-009 | Androidを主対象としてPWAとしてインストールできる | Must | manifest/service workerが有効で、インストール済みアプリとして起動できる | Active |
 | REQ-010 | Google Mapsから共有先として直接受け取れる | Must | Android Google Mapsの共有先に表示され、共有title/text/urlをWeb Share Targetで受信できる | Active |
-| REQ-011 | Direction画面でコンパスと地図を切り替えて現在地と目的地の関係を確認できる | Must | 国内2点は日本地図、海外を含む場合は世界地図を表示し、現在地・目的地・北・距離・目標方位を確認できる | Planned |
+| REQ-011 | Direction画面でコンパスと地図を切り替えて現在地と目的地の関係を確認できる | Must | 国内2点は日本地図、海外を含む場合は世界地図を表示し、現在地・目的地・北・距離・目標方位を確認できる | Active |
 
 ## 6. 非機能要件
 
@@ -107,7 +107,7 @@
 | TBD-004 | PWA/Web Share TargetをMVPに含めるか | Human | 統合PoC完了 | Resolved: MVPに含める |
 | TBD-005 | 保存地点の並び順を登録順固定とするか | Human | UI設計時 | Open |
 | TBD-006 | Google APIの利用量アラート/予算上限をどこまで設定するか | Human | Production release前 | Open |
-| TBD-007 | Japan/World GeoJSONのProduction採用source・license・簡略化方法 | Human | Direction Map実装前 | Open |
+| TBD-007 | Japan/World GeoJSONのProduction採用source・license・簡略化方法 | Human | Direction Map実装前 | Resolved: Japan=japan-map-selector/国土数値情報、World=world-atlas/Natural Earth。追加簡略化しsame-origin配信、license/attributionを同梱 |
 
 ## 11. 要件変更管理
 

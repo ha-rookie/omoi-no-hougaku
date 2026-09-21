@@ -12,6 +12,8 @@
 - [x] Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `MAPS_GROUNDING_API_KEY`
 - [x] Pages Functions: `/functions`を同時Deploy
 - [x] Production URL: `https://omoi-no-hougaku.pages.dev/`
+- [x] API POSTはOrigin必須 + same-origin検証
+- [x] Fetch Metadataが存在する場合はsame-origin検証
 
 ### MVP本番移行時
 
@@ -21,6 +23,7 @@
 - [ ] Preview DeployでSecret/API呼出をどう扱うか確認
 - [ ] Google API keyのAPI制限がMaps Grounding Lite + Places API (New)に限定されていることを確認
 - [ ] Google Cloudの利用量・課金状態・予算アラートを確認
+- [ ] API abuse対策としてCloudflare側rate limiting / challengeの適用可否を確認
 - [ ] SEO/robots/Preview noindexを本番方針に合わせる
 
 ## 2. Deploy方式
@@ -101,8 +104,25 @@ MVP本番で必要なEndpoint:
 - 登録地点・表示名をCloudflare側へ永続保存しない
 - 任意ピンの共有titleが有効な座標ならServer/APIへ送らない
 - 名称付き施設だけ共有短縮URLを`/api/resolve-location`へ送る
-- Endpointはsame-origin、URL host、body size等を検証する
+- POST Endpointは`Origin`必須とし、Request URLとsame-originであることを検証する
+- `Sec-Fetch-Site`が存在する場合は`same-origin`のみ許可する
+- API responseは`Cross-Origin-Resource-Policy: same-origin`、`Cache-Control: no-store`を返す
+- URL host、body size、content typeを検証する
 - Google API以外の任意hostへfetchする汎用proxyにしない
+
+### Security boundary
+
+Origin / Fetch Metadataはブラウザ経由のcross-site利用を減らす防御であり、認証ではない。curl等はヘッダーを偽装できるため、匿名公開APIを「正規ユーザーだけ」に完全制限するものではない。
+
+Google API利用量のabuse対策は以下を組み合わせる。
+
+- Google Cloud側のAPI restrictions
+- quota / usage上限
+- budget alert
+- Cloudflare側rate limiting / challenge（適用可能な構成を確認）
+- Functions / Google Cloud usageの監視
+
+Public化手順は `PUBLIC_RELEASE_CHECKLIST.md` を正とする。
 
 ## 7. Domain・SEO
 
@@ -123,4 +143,5 @@ PoCは技術検証用。MVP本番化IssueでHTTPS、canonical、title、descript
 - Rollback: 前回正常commitから再Deploy
 - Project作成: Workflow内の `wrangler pages project create` を冪等実行
 - API障害: 新規名称付き施設登録だけを失敗させ、保存済み地点利用へ波及させない
+- Security smoke test: OriginなしPOSTは403 / `ORIGIN_REQUIRED`
 - Cost review: Production release前後にGoogle Cloud Consoleで利用量・課金を確認する

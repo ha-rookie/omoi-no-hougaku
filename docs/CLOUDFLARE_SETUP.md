@@ -25,7 +25,9 @@
 - [ ] Preview DeployでSecret/API呼出をどう扱うか確認
 - [ ] Google API keyのAPI制限がMaps Grounding Lite + Places API (New)に限定されていることを確認
 - [ ] Google Cloudの利用量・課金状態・予算アラートを確認
-- [ ] API abuse対策としてCloudflare側rate limiting / challengeの適用可否を確認
+- [x] API abuse対策は専用Cloudflare Worker + Rate Limiting binding方式に決定（ADR-0005）
+- [ ] Rate Limiter WorkerをProductionへDeploy
+- [ ] Pages projectへRate Limiter WorkerのService bindingを追加
 - [ ] SEO/robots/Preview noindexを本番方針に合わせる
 
 ## 2. Deploy方式
@@ -42,6 +44,8 @@ GitHub main
 ```
 
 Workflowは `.github/workflows/deploy-pages.yml` を正とする。
+
+Rate Limiter Workerは `.github/workflows/deploy-rate-limiter.yml` で別Deployする。Workerを先にDeployしてからPages側Service bindingを設定する。
 
 PoC完了後のMVP本体ではDeploy directoryを`public/`へ変更する。変更は本番Implementation Issue内でWorkflow、smoke test、rollback手順を同時更新する。
 
@@ -91,6 +95,17 @@ MVP本番で必要なEndpoint:
 
 旧PoC endpointは本番Implementation後にCleanup Issueで削除可否を判断する。
 
+### Rate Limiter Worker
+
+- Worker: `omoi-no-hougaku-rate-limiter`
+- Source: `workers/api-rate-limiter/`
+- Public route: なし
+- `workers_dev: false`
+- `preview_urls: false`
+- 初期値: 30 requests / 60 seconds
+- key: `resolve-location`
+- Pages側binding名: `RATE_LIMITER_SERVICE` を予定
+
 ## 5. Environment Separation
 
 - Production: `main`
@@ -119,9 +134,8 @@ Origin / Fetch Metadataはブラウザ経由のcross-site利用を減らす防�
 Google API利用量のabuse対策は以下を組み合わせる。
 
 - Google Cloud側のAPI restrictions
-- quota / usage上限
-- budget alert
-- Cloudflare側rate limiting / challenge（適用可能な構成を確認）
+- Cloudflare Rate Limiter Workerによる自動遮断
+- Google Cloud quota / alertは必要時の補助策として再検討
 - Functions / Google Cloud usageの監視
 
 Public化手順は `PUBLIC_RELEASE_CHECKLIST.md` を正とする。

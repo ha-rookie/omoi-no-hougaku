@@ -27,7 +27,10 @@ import {
 {
   let seenUrl = null;
   const candidate = await receiveSharedPlace(
-    { text: '施設 https://maps.app.goo.gl/AbCdEf123' },
+    {
+      title: '施設',
+      text: '施設 https://maps.app.goo.gl/AbCdEf123',
+    },
     {
       resolveMapsUrl: async (url) => {
         seenUrl = url;
@@ -44,10 +47,63 @@ import {
   });
 }
 
+{
+  let resolverCalled = false;
+  await assert.rejects(
+    () =>
+      receiveSharedPlace(
+        {
+          title: '指定した地点',
+          text: 'https://maps.app.goo.gl/AbCdEf123',
+        },
+        {
+          resolveMapsUrl: async () => {
+            resolverCalled = true;
+            return { latitude: 35, longitude: 139 };
+          },
+        }
+      ),
+    (error) => {
+      assert.ok(error instanceof SharedPlaceError);
+      assert.equal(error.code, 'unconfirmed-pin-title');
+      return true;
+    }
+  );
+  assert.equal(resolverCalled, false);
+}
+
+{
+  let resolverCalled = false;
+  await assert.rejects(
+    () =>
+      receiveSharedPlace(
+        {
+          title: '91, 139',
+          text: 'https://maps.app.goo.gl/AbCdEf123',
+        },
+        {
+          resolveMapsUrl: async () => {
+            resolverCalled = true;
+            return { latitude: 35, longitude: 139 };
+          },
+        }
+      ),
+    (error) => {
+      assert.ok(error instanceof SharedPlaceError);
+      assert.equal(error.code, 'invalid-coordinate-title');
+      return true;
+    }
+  );
+  assert.equal(resolverCalled, false);
+}
+
 await assert.rejects(
   () =>
     receiveSharedPlace(
-      { text: '施設 https://maps.app.goo.gl/AbCdEf123' },
+      {
+        title: '施設',
+        text: '施設 https://maps.app.goo.gl/AbCdEf123',
+      },
       {
         resolveMapsUrl: async () => ({ latitude: 999, longitude: 139 }),
       }
@@ -67,7 +123,7 @@ await assert.rejects(
     ),
   (error) => {
     assert.ok(error instanceof SharedPlaceError);
-    assert.equal(error.code, 'UNSUPPORTED_SHARE');
+    assert.equal(error.code, 'maps-url-not-found');
     return true;
   }
 );

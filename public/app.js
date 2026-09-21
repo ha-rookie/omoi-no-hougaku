@@ -239,9 +239,8 @@ function loadPlaces() {
         stopDirectionRuntime();
         view.hideDirection();
         selectedId = id;
-        const selected = repository.list().find((place) => place.id === id) ?? null;
-        view.showSelected(selected);
         loadPlaces();
+        void startDirection();
       },
       onDelete: (id) => {
         const place = repository.list().find((item) => item.id === id);
@@ -255,7 +254,6 @@ function loadPlaces() {
             stopDirectionRuntime();
             view.hideDirection();
             selectedId = null;
-            view.showSelected(null);
           }
           loadPlaces();
           view.setStatus('場所を削除しました。', 'ok');
@@ -265,8 +263,6 @@ function loadPlaces() {
       },
     });
 
-    const selected = places.find((place) => place.id === selectedId) ?? null;
-    view.showSelected(selected);
   } catch (error) {
     handleError(error);
   }
@@ -346,7 +342,6 @@ try {
   handleError(error);
 }
 
-view.onStartDirection(startDirection);
 view.onDirectionModeChange(changeDirectionMode);
 
 view.onCloseDirection(() => {
@@ -361,12 +356,12 @@ view.onSave((name) => {
   }
 
   try {
-    const saved = registerPlace(repository, candidate, name);
+    registerPlace(repository, candidate, name);
     candidate = null;
-    selectedId = saved.id;
+    selectedId = null;
     view.hideCandidate();
     loadPlaces();
-    view.setStatus('この場所を端末に保存しました。', 'ok');
+    view.setStatus('この場所を端末に保存しました。登録一覧から選べます。', 'ok');
   } catch (error) {
     handleError(error);
   }

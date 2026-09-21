@@ -174,6 +174,7 @@ export async function renderMapOverview({
   distanceMeters,
   targetBearing,
   targetDirectionLabel,
+  shouldCommit = () => true,
 }) {
   if (!container) return null;
 
@@ -181,6 +182,16 @@ export async function renderMapOverview({
   const mode = selectMapMode(current, target, japanData);
   const geography = mode === 'japan' ? japanData : await loadWorldMapData();
   const box = mode === 'japan' ? japanViewBox(current, target) : worldViewBox();
+
+  if (!shouldCommit()) {
+    return {
+      mode,
+      distanceMeters,
+      targetBearing,
+      targetDirectionLabel,
+      committed: false,
+    };
+  }
 
   container.replaceChildren();
   container.dataset.mapMode = mode;
@@ -218,5 +229,6 @@ export async function renderMapOverview({
     distanceMeters,
     targetBearing,
     targetDirectionLabel,
+    committed: true,
   };
 }

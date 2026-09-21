@@ -99,16 +99,20 @@ jobs:
 
       - name: Deployment smoke test
         env:
-          BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          BASE_URL: https://omoi-no-hougaku.pages.dev
           EXPECTED_BUILD_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -euo pipefail
 
-          if [ -z "$BASE_URL" ]; then
+          if [ -z "$DEPLOYMENT_URL" ]; then
             echo 'Wrangler did not return deployment-url.'
             exit 1
           fi
+
+          echo "Wrangler deployment URL: $DEPLOYMENT_URL"
+          echo "Production smoke target: $BASE_URL"
 
           ORIGIN="${BASE_URL%/}"
           ready=0
@@ -139,7 +143,16 @@ jobs:
               -H 'Sec-Fetch-Site: same-origin' \
               --data '{}')" || location_status="000"
 
-            if curl -fsS "$BASE_URL/build.json" -o /tmp/build.json \
+            build_ok=0
+            if curl -fsS "$BASE_URL/build.json" -o /tmp/build.json; then
+              if grep -Fq "\"buildSha\":\"$EXPECTED_BUILD_SHA\"" /tmp/build.json; then
+                build_ok=1
+              fi
+            fi
+
+            echo "status: build=$build_ok no-origin=$no_origin_status resolve-map=$api_status resolve-maps-url=$grounding_status resolve-location=$location_status"
+
+            if [ "$build_ok" = '1' ] \
               && curl -fsS "$BASE_URL/" -o /tmp/index.html \
               && curl -fsS "$BASE_URL/server-poc-v2.html" -o /tmp/server-poc-v2.html \
               && curl -fsS "$BASE_URL/resolver.mjs" -o /tmp/resolver.mjs \
@@ -150,7 +163,6 @@ jobs:
               && curl -fsS "$BASE_URL/sw-share-target.js" -o /tmp/sw-share-target.js \
               && curl -fsS "$BASE_URL/resolution-api-poc.html" -o /tmp/resolution-api-poc.html \
               && curl -fsS "$BASE_URL/location-poc.html" -o /tmp/location-poc.html \
-              && grep -Fq "\"buildSha\":\"$EXPECTED_BUILD_SHA\"" /tmp/build.json \
               && grep -q 'Google Maps' /tmp/index.html \
               && grep -q 'Pages Function' /tmp/index.html \
               && grep -q 'SERVER RESOLVER v2' /tmp/server-poc-v2.html \
@@ -179,6 +191,12 @@ jobs:
           done
 
           if [ "$ready" -ne 1 ]; then
-            echo 'PoC deployment did not become ready within 60 seconds.'
+            echo 'PoC production deployment did not become ready within 60 seconds.'
+            echo 'Latest responses:'
+            for file in /tmp/build.json /tmp/no-origin.json /tmp/api.json /tmp/grounding-api.json /tmp/location-api.json; do
+              echo "--- $file ---"
+              cat "$file" 2>/dev/null || true
+              echo
+            done
             exit 1
           fi

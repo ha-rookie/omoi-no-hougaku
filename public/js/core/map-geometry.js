@@ -21,9 +21,13 @@ function validPoint(point) {
 function pointOnSegment(x, y, ax, ay, bx, by, epsilon = 1e-9) {
   const cross = (x - ax) * (by - ay) - (y - ay) * (bx - ax);
   if (Math.abs(cross) > epsilon) return false;
+  const lengthSq = (bx - ax) ** 2 + (by - ay) ** 2;
+  if (lengthSq <= epsilon) {
+    return (x - ax) ** 2 + (y - ay) ** 2 <= epsilon ** 2;
+  }
+
   const dot = (x - ax) * (bx - ax) + (y - ay) * (by - ay);
   if (dot < -epsilon) return false;
-  const lengthSq = (bx - ax) ** 2 + (by - ay) ** 2;
   return dot <= lengthSq + epsilon;
 }
 

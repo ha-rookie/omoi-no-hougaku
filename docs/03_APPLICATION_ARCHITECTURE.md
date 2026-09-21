@@ -13,6 +13,8 @@ Presentation / UI
   - Place List
   - Add/Confirm Place
   - Direction View
+  - Compass View
+  - Map Overview
   - Permission / Error UI
       |
       v
@@ -27,8 +29,11 @@ Application / Use Cases
 Domain / Core Logic
   - Shared Payload Classification
   - Coordinate Validation
-  - Bearing Calculation
+  - Bearing / Distance Calculation
   - Direction Naming
+  - Heading Normalization / Alignment
+  - Japan / World Map Classification
+  - Great-circle Path Construction
   - Saved-place Limit Rule
       |
       v
@@ -37,6 +42,8 @@ Infrastructure
   - localStorage
   - Geolocation
   - Device Orientation
+  - WMM2025 same-origin runtime/data
+  - Same-origin Japan/World map assets
   - Same-origin Location Resolver Client
       |
       v
@@ -75,6 +82,10 @@ Domain/CoreはDOM、Cloudflare、Google APIに依存させない。
 | APP-034 | LocationResolverClient | 同一origin `/api/resolve-location` を呼ぶ | maps.app.goo.gl URL | PlaceCandidate/Error | API keyを保持しない |
 | APP-035 | ServerLocationResolver | Maps URL→Place ID→座標を公式APIで解決する | short Maps URL | coordinates/placeId | 汎用proxy化・DB保存・入力loggingをしない |
 | APP-036 | RateLimitGateway | Service binding経由でGoogle API前段のRate Limitを判定する | resource key | allowed / limited | 地点情報・共有URLをRate Limit keyへ含めない |
+| APP-037 | MapModeClassifier | current/targetが日本領域内か判定しJapan/World Mapを選ぶ | current/target + Japan outline | japan/world | reverse geocoding・外部APIを呼ばない |
+| APP-038 | MapOverviewUI | current/target/北/距離/方位をvector map上へ表示する | GuidanceSession + map mode | Rendered map | Geolocationを再取得しない |
+| APP-039 | GeodesicPathBuilder | World Map用great-circle lineを生成しantimeridianで分割する | from/to coordinates | polyline segments | routing/道路情報を扱わない |
+| APP-040 | DeclinationProvider | WMM modelで磁気偏角を端末内計算する | current coordinates + date | declination degrees | 外部geomagnetic APIへ現在地を送らない |
 
 ## 4. Dependency Rules
 
@@ -87,6 +98,9 @@ Domain/CoreはDOM、Cloudflare、Google APIに依存させない。
 - Service Workerは共有受信に限定し、地点保存のSource of Truthにしない
 - Pages FunctionはSavedPlace model/localStorageへ依存しない
 - Google API keyはServer側環境変数/Secret以外へ置かない
+- Compass / Mapは同じGuidance Sessionを共有し、view切替でGeolocation/Orientationを再起動しない
+- Direction Mapはsame-origin vector assetsを使い、current/target座標を外部Map providerへ送らない
+- World Map connectionはGreat-circle Path Builderを経由し、antimeridianを明示処理する
 
 ## 5. Routing / Screen Composition
 
@@ -96,7 +110,7 @@ MVPは単一PWA内の状態遷移を基本とする。
 | --- | --- | --- | --- | --- | --- |
 | UI-001 | Home / Place List | 保存済みの大切な場所を選ぶ | App start | 選択、追加、削除 | Direction / Add guide |
 | UI-002 | Add / Confirm Place | Google Maps共有から得た地点を確認・命名・保存 | Share Target | 確認、命名、保存、キャンセル | Home / Direction |
-| UI-003 | Direction | 選択地点の方角を向く | Place selected | 位置許可、方角確認 | Home |
+| UI-003 | Direction | 選択地点の方角を向き、地理的関係も確認する | Place selected | 位置許可、コンパス/地図切替、方角確認 | Home |
 | UI-004 | Permission/Error State | 必要な許可・失敗理由を伝える | Runtime failure | 再試行、設定確認、戻る | Previous screen |
 | UI-005 | Add Guide | Google Mapsで地点を開き共有する手順を案内 | Home add action | Google Mapsを開く | External Google Maps |
 
@@ -113,6 +127,9 @@ MVPは単一PWA内の状態遷移を基本とする。
 | addPlaceDraft | UI | Form state | none | Save / cancel / reload |
 | sharedPayload | Runtime | ShareTargetAdapter | none | Resolution complete / cancel / reload |
 | permissionState | Runtime | Browser APIs | none | Browser/OS permission change |
+| guidanceSession | Runtime | ShowDirectionUseCase | none | Home return / reload / selected place change |
+| directionViewMode | UI | User selection | none | Direction exit |
+| mapMode | Runtime | MapModeClassifier | none | Guidance session reset |
 
 Pages FunctionはApplication stateを持たず、共有URL・Place ID・座標を永続化しない。
 
@@ -125,9 +142,15 @@ User selects saved place
   -> ShowDirectionUseCase
   -> GeolocationAdapter.getCurrentPosition()
   -> BearingCalculator.calculate(current, target)
+  -> DistanceCalculator.calculate(current, target)
   -> DirectionLabeler.label(bearing)
+  -> MapModeClassifier(current, target)
+  -> GuidanceSession create
   -> OrientationAdapter.start() when supported/allowed
+  -> DeclinationProvider when true-north correction is required
   -> DirectionUI render
+       |-> Compass View
+       |-> Map Overview (same GuidanceSession)
 ```
 
 ### 7.2 Place登録: 共通入口
@@ -180,6 +203,8 @@ classified as maps URL
 | DATA-005 | SharePayload | title?, text?, url? | ShareTargetAdapter | string length/type | none |
 | DATA-006 | ResolveLocationRequest | url | LocationResolverClient / ServerLocationResolver | HTTPS, exact short host, length | none |
 | DATA-007 | ResolveLocationResponse | ok, latitude?, longitude?, placeId?, error? | ServerLocationResolver | no input URL echo | none |
+| DATA-008 | GuidanceSession | selectedPlaceId, currentPosition, targetPosition, targetBearing, distanceMeters, currentHeading?, relativeAngle?, alignmentState? | ShowDirectionUseCase | coordinates/degree normalization | none |
+| DATA-009 | MapOverviewState | mode, current, target, relationshipSegments | MapOverviewUI | japan/world + valid coordinates | none |
 
 MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place IDをlocalStorageへ保存しない。
 
@@ -197,6 +222,8 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 | IF-008 | Maps Grounding Lite | Server -> Google | Maps URL | Place ID | Google API error / no unique place |
 | IF-009 | Places API (New) | Server -> Google | Place ID + fields=id,location | id/location | Google API error / missing location |
 | IF-010 | Rate Limiter Service | Pages Function -> private Worker | resource key=`resolve-location` | allowed / limited | 429 / 503 |
+| IF-011 | Same-origin Map Assets | PWA -> same-origin static assets | Japan outline/prefectures/World GeoJSON | vector geography | AssetUnavailable |
+| IF-012 | Same-origin WMM Model | PWA -> same-origin static assets | model coefficients/runtime | declination calculation input | ModelUnavailable / OutOfValidity |
 
 `IF-007` responseへ入力URL・地点名を含めない。Place IDは登録後に永続保存しない。
 
@@ -207,7 +234,9 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 - Google API解決失敗: 推測せず「場所を読み取れませんでした」
 - API key/Server error: 新規施設登録だけ失敗させ、保存済み地点機能へ波及させない
 - Geolocation失敗: 方角計算を行わずpermission/unavailable/timeoutを区別する
-- Orientation失敗: コンパス追従なしで方位角・方向名へ縮退する
+- Orientation失敗: コンパス追従なしで方位角・方向名・地図へ縮退する
+- Japan detailed map失敗: same-origin Japan outline、次にWorld Mapへ縮退し、外部tile providerへ自動fallbackしない
+- World Map失敗: text/Compass guidanceは継続し、外部Map providerへ自動fallbackしない
 - Storage失敗: 保存できないことを明示し、成功表示しない
 - 保存件数超過: 既存地点を自動上書きせず、削除を促す
 
@@ -217,7 +246,7 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 - Web Share Target: Android Google Mapsからの地点登録主導線として採用
 - Service Worker: share target POST受信とApp shellの必要最小処理を担当
 - Share Target POSTはService Workerで受け、共有本文をURL queryへ載せない
-- Cache対象: App shell / static assetsを候補とする
+- Cache対象: App shell / static assets / WMM assets / map vector assetsを候補とする
 - Cacheしない対象: `/api/resolve-location` response、共有payload、登録地点データ
 - Offline: 保存済み地点と端末APIが使える範囲では方角計算可能。名称付き施設の新規登録は不可
 
@@ -245,11 +274,11 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 
 | Layer | Test Type | Main Targets |
 | --- | --- | --- |
-| Core | Unit | shared payload classification / coordinate validation / bearing / max-5 rule |
+| Core | Unit | shared payload classification / coordinate validation / bearing / distance / heading normalization / alignment / Japan classification / great-circle / antimeridian / max-5 rule |
 | Application | Unit/Integration | ReceiveSharedPlace / Register / Delete / ShowDirection |
 | Infrastructure | Integration | localStorage / Geolocation / Share Target / resolver client |
 | Server | Unit/Integration | request validation / Rate Limiter / Maps Grounding response / Places response / secret absence |
-| UI | Regression/E2E | Share -> Confirm -> Save -> Select -> Direction / mobile layout |
+| UI | Regression/E2E | Share -> Confirm -> Save -> Select -> Direction / Compass-Map switch / Japan-World map / mobile layout |
 | Security | Static/Regression | URL allowlist / XSS / secret exposure / no sensitive logging |
 | Release | Manual | Production/Preview / Android Google Maps share / permission flows |
 
@@ -258,3 +287,5 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 - TBD-APP-003: Device Orientation APIのAndroid実機差・補正方法
 - TBD-APP-004: 16方位/8方位/角度表示の最終UI
 - TBD-APP-007: Web Share Target非対応環境の正式fallback UX
+- TBD-APP-008: Japan/World GeoJSONのProduction source・license・simplification
+- TBD-APP-009: World Mapのgreat-circle補間点数とviewport戦略

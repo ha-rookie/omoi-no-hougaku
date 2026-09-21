@@ -27,6 +27,7 @@ import {
   startHeadingUpdates,
 } from './js/infrastructure/heading-provider.js';
 import { getMagneticDeclination } from './js/infrastructure/declination-provider.js';
+import { renderMapOverview } from './js/ui/map-overview.js';
 import { AppView } from './js/ui/app-view.js';
 
 const view = new AppView();
@@ -38,9 +39,13 @@ let activeDeclinationDegrees = null;
 let latestHeadingReading = null;
 let stopHeadingUpdates = null;
 let directionRunId = 0;
+let directionViewMode = 'compass';
+let mapRenderId = 0;
 
 function stopDirectionRuntime() {
   directionRunId += 1;
+  mapRenderId += 1;
+  directionViewMode = 'compass';
   stopHeadingUpdates?.();
   stopHeadingUpdates = null;
   activeDirectionSession = null;
@@ -161,6 +166,62 @@ async function startDirection() {
   }
 }
 
+async function changeDirectionMode(mode) {
+  directionViewMode = mode === 'map' ? 'map' : 'compass';
+  view.setDirectionMode(directionViewMode);
+
+  if (directionViewMode !== 'map') {
+    mapRenderId += 1;
+    return;
+  }
+
+  if (!activeDirectionSession) {
+    view.showMapError('現在地と目的地を確認してから地図を表示します。');
+    return;
+  }
+
+  const renderId = ++mapRenderId;
+  const runId = directionRunId;
+  const session = activeDirectionSession;
+
+  view.showMapLoading();
+
+  try {
+    const result = await renderMapOverview({
+      container: view.getMapOverviewContainer(),
+      current: session.currentPosition,
+      target: session.targetPosition,
+      targetName: session.selectedPlaceName,
+      distanceMeters: session.distanceMeters,
+      targetBearing: session.targetBearing,
+      targetDirectionLabel: session.targetDirectionLabel,
+      shouldCommit: () =>
+        renderId === mapRenderId &&
+        runId === directionRunId &&
+        directionViewMode === 'map',
+    });
+
+    if (
+      result?.committed &&
+      renderId === mapRenderId &&
+      runId === directionRunId &&
+      directionViewMode === 'map'
+    ) {
+      view.showMapReady(result);
+    }
+  } catch {
+    if (
+      renderId === mapRenderId &&
+      runId === directionRunId &&
+      directionViewMode === 'map'
+    ) {
+      view.showMapError(
+        '地図を表示できませんでした。コンパスと方位・距離は引き続き利用できます。'
+      );
+    }
+  }
+}
+
 function clearShareFragment() {
   history.replaceState(null, '', `${location.pathname}${location.search}`);
 }
@@ -178,9 +239,8 @@ function loadPlaces() {
         stopDirectionRuntime();
         view.hideDirection();
         selectedId = id;
-        const selected = repository.list().find((place) => place.id === id) ?? null;
-        view.showSelected(selected);
         loadPlaces();
+        void startDirection();
       },
       onDelete: (id) => {
         const place = repository.list().find((item) => item.id === id);
@@ -194,7 +254,6 @@ function loadPlaces() {
             stopDirectionRuntime();
             view.hideDirection();
             selectedId = null;
-            view.showSelected(null);
           }
           loadPlaces();
           view.setStatus('場所を削除しました。', 'ok');
@@ -204,8 +263,6 @@ function loadPlaces() {
       },
     });
 
-    const selected = places.find((place) => place.id === selectedId) ?? null;
-    view.showSelected(selected);
   } catch (error) {
     handleError(error);
   }
@@ -285,7 +342,7 @@ try {
   handleError(error);
 }
 
-view.onStartDirection(startDirection);
+view.onDirectionModeChange(changeDirectionMode);
 
 view.onCloseDirection(() => {
   stopDirectionRuntime();
@@ -299,12 +356,12 @@ view.onSave((name) => {
   }
 
   try {
-    const saved = registerPlace(repository, candidate, name);
+    registerPlace(repository, candidate, name);
     candidate = null;
-    selectedId = saved.id;
+    selectedId = null;
     view.hideCandidate();
     loadPlaces();
-    view.setStatus('この場所を端末に保存しました。', 'ok');
+    view.setStatus('この場所を端末に保存しました。登録一覧から選べます。', 'ok');
   } catch (error) {
     handleError(error);
   }

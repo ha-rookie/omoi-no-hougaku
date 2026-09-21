@@ -398,3 +398,161 @@ input[type="text"] {
     transition: none;
   }
 }
+
+
+/* Direction map overview */
+
+.guidance-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: min(100%, 360px);
+  margin: 0 auto 18px;
+  padding: 4px;
+  border: 1px solid #d6d3d1;
+  border-radius: 999px;
+  background: #fafaf9;
+}
+
+.guidance-mode-button {
+  min-height: 40px;
+  border-color: transparent;
+  background: transparent;
+}
+
+.guidance-mode-button[aria-pressed="true"] {
+  border-color: #525252;
+  background: #fff;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+
+.map-mode-panel {
+  margin-top: 4px;
+}
+
+.map-overview-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin-bottom: 10px;
+}
+
+.map-overview {
+  position: relative;
+  min-height: 280px;
+  overflow: hidden;
+  border: 1px solid #d6d3d1;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 28% 24%, rgba(255,255,255,.95), rgba(250,250,249,.86) 42%, rgba(245,245,244,.96)),
+    #f5f5f4;
+}
+
+.map-overview > .muted,
+.map-overview > .status {
+  margin: 0;
+  padding: 24px;
+}
+
+.map-overview-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 280px;
+  max-height: 520px;
+  background: #fafaf9;
+}
+
+.map-geography {
+  fill: #e7e5e4;
+  stroke: #a8a29e;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.map-geography--japan {
+  fill: #e5e7eb;
+  stroke: #a3a3a3;
+}
+
+.map-geography--world {
+  fill: #e7e5e4;
+  stroke: #b8b8b8;
+}
+
+.map-relationship-line {
+  fill: none;
+  stroke: #404040;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .78;
+}
+
+.map-marker-shape {
+  stroke: #fff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-marker--current .map-marker-shape {
+  fill: #525252;
+}
+
+.map-marker--target .map-marker-shape {
+  fill: #171717;
+}
+
+.map-marker-label {
+  fill: #262626;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: rgba(255,255,255,.96);
+  stroke-width: 4px;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-north-cue {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  min-width: 42px;
+  min-height: 42px;
+  place-items: center;
+  padding: 6px;
+  border: 1px solid rgba(82,82,82,.35);
+  border-radius: 12px;
+  background: rgba(255,255,255,.9);
+  color: #404040;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  white-space: pre-line;
+  backdrop-filter: blur(6px);
+}
+
+.map-overview-note {
+  margin: 10px 2px 0;
+  font-size: .86rem;
+}
+
+@media (max-width: 480px) {
+  .map-overview {
+    min-height: 240px;
+  }
+
+  .map-overview-svg {
+    min-height: 240px;
+  }
+}
+
+
+.map-attribution {
+  margin: 6px 2px 0;
+  font-size: .68rem;
+  line-height: 1.45;
+}

@@ -25,3 +25,29 @@ The app performs magnetic-declination calculation in the browser and does not se
 Official model page recorded in the coefficient asset:
 
 https://www.ncei.noaa.gov/products/world-magnetic-model
+
+
+## Japan prefecture map data
+
+The Japan prefecture GeoJSON used by the Direction Map is derived from:
+
+- Project: `northprint/japan-map-selector`
+- Version used as source reference: `0.2.5`
+- Project license: MIT
+- Original map data: 国土交通省「国土数値情報（行政区域データ）」
+- App-side processing: additional coordinate simplification and attribute reduction for mobile delivery
+- License copy: `japan-map-selector-LICENSE.txt`
+- Attribution copy: `japan-map-selector-ATTRIBUTION.md`
+
+The source project's attribution states that the administrative boundary data originates from the Ministry of Land, Infrastructure, Transport and Tourism's National Land Numerical Information and requires source attribution.
+
+## World map data
+
+The world overview GeoJSON is derived from the `world-atlas` / Natural Earth 110m dataset.
+
+- world-atlas license: ISC (Mike Bostock)
+- Natural Earth source data: public domain
+- App-side processing: coordinate simplification and property reduction for mobile delivery
+- License copy: `world-atlas-LICENSE.txt`
+
+The Direction Map serves both Japan and World map assets from the same origin. It does not send current or target coordinates to an external map provider.

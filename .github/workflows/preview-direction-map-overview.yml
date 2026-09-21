@@ -1,0 +1,122 @@
+name: Preview Direction map overview
+
+on:
+  push:
+    branches:
+      - feature/direction-map-overview
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-direction-map-overview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate map source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s public/data/maps/japan-prefectures.geojson
+          test -s public/data/maps/world-110m.geojson
+          test -s public/js/core/map-geometry.js
+          test -s public/js/ui/map-overview.js
+
+          node --check public/app.js
+          node --check public/js/ui/app-view.js
+          node --check public/js/core/map-geometry.js
+          node --check public/js/ui/map-overview.js
+          node tests/map-geometry.test.mjs
+
+          japan_size=$(wc -c < public/data/maps/japan-prefectures.geojson)
+          world_size=$(wc -c < public/data/maps/world-110m.geojson)
+
+          test "$japan_size" -lt 130000
+          test "$world_size" -lt 180000
+
+      - name: Build preview-only test bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/direction-map-preview-public
+          cp -a public /tmp/direction-map-preview-public
+          cp tests/manual/direction-map-preview.html /tmp/direction-map-preview-public/preview-test.html
+          grep -Fq 'テスト地点を準備してアプリを開く' /tmp/direction-map-preview-public/preview-test.html
+          grep -Fq 'new PlaceRepository' /tmp/direction-map-preview-public/preview-test.html
+
+      - name: Deploy Direction Map Preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          command: pages deploy /tmp/direction-map-preview-public --project-name=omoi-no-hougaku --branch=feature-direction-map-overview --commit-dirty=true
+
+      - name: Preview smoke test
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+
+          ready=0
+          for attempt in $(seq 1 20); do
+            echo "Map Preview readiness attempt $attempt/20: $DEPLOYMENT_URL"
+
+            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/app.js" -o /tmp/app.js               && curl -fsS "$DEPLOYMENT_URL/styles.css" -o /tmp/styles.css               && curl -fsS "$DEPLOYMENT_URL/data/maps/japan-prefectures.geojson" -o /tmp/japan.geojson               && curl -fsS "$DEPLOYMENT_URL/data/maps/world-110m.geojson" -o /tmp/world.geojson; then
+              ready=1
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo 'Direction Map Preview did not become ready within 40 seconds.'
+            exit 1
+          fi
+
+          grep -Fq 'id="mode-map"' /tmp/index.html
+          grep -Fq 'id="map-overview"' /tmp/index.html
+          grep -Fq 'renderMapOverview' /tmp/app.js
+          grep -Fq 'Direction map overview' /tmp/styles.css
+          if grep -Fq 'id="start-direction"' /tmp/index.html; then
+            echo 'Old extra Direction start button must not exist.'
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('/tmp/index.html', 'utf8');
+          const saved = html.indexOf('id="saved-heading"');
+          const direction = html.indexOf('id="direction-panel"');
+          const add = html.indexOf('id="add-heading"');
+          const candidate = html.indexOf('id="candidate-panel"');
+          if (!(saved >= 0 && saved < direction && direction < add && add < candidate)) {
+            console.error('Unexpected UI section order');
+            process.exit(1);
+          }
+          NODE
+
+          node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/japan.geojson','utf8')); if(j.features?.length !== 47) process.exit(1)"
+          node -e "const fs=require('fs'); const w=JSON.parse(fs.readFileSync('/tmp/world.geojson','utf8')); if(!Array.isArray(w.features) || w.features.length < 100) process.exit(1)"
+
+      - name: Report preview URL
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+          echo "Direction Map Preview URL: $DEPLOYMENT_URL"
+          echo "Direction Map Test Setup URL: $DEPLOYMENT_URL/preview-test.html"

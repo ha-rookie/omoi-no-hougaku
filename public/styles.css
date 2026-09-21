@@ -165,3 +165,236 @@ input[type="text"] {
   background: #fafaf9;
   border: 1px solid #e7e5e4;
 }
+
+
+/* Direction / target-up compass */
+
+.direction-panel {
+  scroll-margin-top: 16px;
+}
+
+.direction-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.direction-eyebrow {
+  margin: 0 0 4px;
+  color: #737373;
+  font-size: .82rem;
+}
+
+.direction-target-name {
+  margin: 4px 0 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.target-bearing-primary {
+  margin: 12px 0 18px;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.direction-compass {
+  --compass-counter: 0deg;
+  position: relative;
+  width: min(78vw, 320px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  border: 1px solid #a8a29e;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, #fff 0 48%, transparent 49%),
+    repeating-conic-gradient(
+      from 0deg,
+      #d6d3d1 0deg 1deg,
+      transparent 1deg 15deg
+    ),
+    #fafaf9;
+  box-shadow:
+    inset 0 0 0 10px #fff,
+    inset 0 0 0 11px #e7e5e4;
+}
+
+.compass-rotor {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+}
+
+.compass-cardinal {
+  position: absolute;
+  display: block;
+  color: #404040;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.compass-cardinal > span {
+  display: block;
+  transform: rotate(var(--compass-counter));
+}
+
+.compass-cardinal--north {
+  top: 12%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.compass-cardinal--east {
+  top: 50%;
+  right: 12%;
+  transform: translate(50%, -50%);
+}
+
+.compass-cardinal--south {
+  bottom: 12%;
+  left: 50%;
+  transform: translate(-50%, 50%);
+}
+
+.compass-cardinal--west {
+  top: 50%;
+  left: 12%;
+  transform: translate(-50%, -50%);
+}
+
+.target-fixed-mark {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.target-fixed-dot {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #262626;
+  box-shadow: 0 0 0 1px #525252;
+}
+
+.target-fixed-label {
+  padding: 3px 8px;
+  border: 1px solid #a8a29e;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .96);
+  color: #262626;
+  font-size: .7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.compass-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 4;
+  width: 20px;
+  height: 20px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #525252;
+  box-shadow: 0 0 0 1px #737373;
+  transform: translate(-50%, -50%);
+}
+
+.current-heading-needle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  width: 4px;
+  height: 34%;
+  border-radius: 999px;
+  background: #525252;
+  transform: translate(-50%, -100%) rotate(0deg);
+  transform-origin: 50% 100%;
+  transition: transform 140ms ease-out;
+}
+
+.current-heading-needle::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-right: 8px solid transparent;
+  border-bottom: 14px solid #525252;
+  border-left: 8px solid transparent;
+  transform: translateX(-50%);
+}
+
+.direction-compass[data-aligned="true"] .current-heading-needle,
+.direction-compass[data-aligned="true"] .current-heading-needle::before {
+  filter: contrast(1.2);
+}
+
+.turn-instruction {
+  min-height: 1.7em;
+  margin: 18px 0 8px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.direction-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0 0;
+}
+
+.direction-metrics > div {
+  min-width: 0;
+  padding: 10px 8px;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  background: #fafaf9;
+  text-align: center;
+}
+
+.direction-metrics dt {
+  color: #737373;
+  font-size: .72rem;
+}
+
+.direction-metrics dd {
+  margin: 4px 0 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 390px) {
+  .direction-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .direction-metrics > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .current-heading-needle {
+    transition: none;
+  }
+}

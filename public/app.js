@@ -11,6 +11,7 @@ import {
   receiveSharedPlace,
 } from './js/app/receive-shared-place.js';
 import { registerPlace } from './js/app/register-place.js';
+import { shouldEnterAlignedState } from './js/app/alignment-transition.js';
 import {
   createDirectionSession,
   DirectionSessionError,
@@ -77,9 +78,11 @@ function applyLatestHeading() {
   view.renderDirectionHeading(activeDirectionSession);
 
   if (
-    directionViewMode === 'compass' &&
-    activeDirectionSession.alignment.aligned &&
-    !alignedForCurrentRun
+    shouldEnterAlignedState({
+      session: activeDirectionSession,
+      viewMode: directionViewMode,
+      alreadyAligned: alignedForCurrentRun,
+    })
   ) {
     alignedForCurrentRun = true;
     stopHeadingUpdates?.();

@@ -56,6 +56,7 @@ jobs:
           test -s public/js/core/alignment-engine.js
           test -s public/js/core/map-geometry.js
           test -s public/js/app/direction-session.js
+          test -s public/js/app/alignment-transition.js
           test -s public/js/infrastructure/location-provider.js
           test -s public/js/infrastructure/heading-provider.js
           test -s public/js/infrastructure/declination-provider.js
@@ -83,6 +84,7 @@ jobs:
           node --check public/js/core/alignment-engine.js
           node --check public/js/core/map-geometry.js
           node --check public/js/app/direction-session.js
+          node --check public/js/app/alignment-transition.js
           node --check public/js/infrastructure/location-provider.js
           node --check public/js/infrastructure/heading-provider.js
           node --check public/js/infrastructure/declination-provider.js
@@ -106,6 +108,7 @@ jobs:
           node --check tests/heading-provider.test.mjs
           node --check tests/wmm2025-runtime.test.mjs
           node --check tests/map-geometry.test.mjs
+          node --check tests/alignment-transition.test.mjs
 
           node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('public/data/maps/japan-prefectures.geojson','utf8')); if(j.features?.length !== 47) process.exit(1)"
           node -e "const fs=require('fs'); const w=JSON.parse(fs.readFileSync('public/data/maps/world-110m.geojson','utf8')); if(!Array.isArray(w.features) || w.features.length < 100) process.exit(1)"
@@ -145,3 +148,4 @@ jobs:
           node --test tests/heading-provider.test.mjs
           node --test tests/wmm2025-runtime.test.mjs
           node tests/map-geometry.test.mjs
+          node tests/alignment-transition.test.mjs

@@ -42,8 +42,13 @@ Infrastructure
       v
 Cloudflare Pages Function
   - /api/resolve-location
+  - Rate Limiter Service Binding client
   - Maps Grounding Lite client
   - Places API (New) client
+      |
+      v
+Private Cloudflare Worker
+  - Rate Limiting binding
 ```
 
 Domain/CoreはDOM、Cloudflare、Google APIに依存させない。
@@ -69,6 +74,7 @@ Domain/CoreはDOM、Cloudflare、Google APIに依存させない。
 | APP-033 | ShareTargetAdapter | Web Share Target POSTをService Workerで受け、一時payloadとしてAppへ渡す | form POST | SharePayload | DB保存・外部送信・query埋込をしない |
 | APP-034 | LocationResolverClient | 同一origin `/api/resolve-location` を呼ぶ | maps.app.goo.gl URL | PlaceCandidate/Error | API keyを保持しない |
 | APP-035 | ServerLocationResolver | Maps URL→Place ID→座標を公式APIで解決する | short Maps URL | coordinates/placeId | 汎用proxy化・DB保存・入力loggingをしない |
+| APP-036 | RateLimitGateway | Service binding経由でGoogle API前段のRate Limitを判定する | resource key | allowed / limited | 地点情報・共有URLをRate Limit keyへ含めない |
 
 ## 4. Dependency Rules
 
@@ -151,6 +157,8 @@ classified as strict coordinate title
 classified as maps URL
   -> LocationResolverClient POST /api/resolve-location
   -> ServerLocationResolver
+       -> RateLimitGateway check(resolve-location)
+       -> limitedなら429で終了
        -> Maps Grounding Lite ResolveMapsUrls
        -> Place ID
        -> Places API (New) Place Details (id/location only)
@@ -188,6 +196,7 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 | IF-007 | `POST /api/resolve-location` | Client -> same-origin Pages Function | `{ "url": "https://maps.app.goo.gl/..." }` | `{ ok, latitude, longitude, placeId }` | 4xx input/security, 5xx Google API/upstream |
 | IF-008 | Maps Grounding Lite | Server -> Google | Maps URL | Place ID | Google API error / no unique place |
 | IF-009 | Places API (New) | Server -> Google | Place ID + fields=id,location | id/location | Google API error / missing location |
+| IF-010 | Rate Limiter Service | Pages Function -> private Worker | resource key=`resolve-location` | allowed / limited | 429 / 503 |
 
 `IF-007` responseへ入力URL・地点名を含めない。Place IDは登録後に永続保存しない。
 
@@ -226,7 +235,9 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 - Serverへ送るURLはexact `https://maps.app.goo.gl/...` のみ
 - Serverの外部接続先はGoogle API固定endpointのみ
 - API keyはCloudflare Secretで管理しBrowserへ返さない
-- OriginがあるBrowser requestはsame-originのみ許可する
+- Browser requestはOrigin必須かつsame-originのみ許可する
+- Google API呼び出し前にRateLimitGatewayを必須化し、limit超過時は429で終了する
+- Rate Limit keyへURL、地点名、Place ID、座標を含めない
 - Server responseは`no-store`
 - Human approval points: 外部送信範囲拡大、API追加、Analytics項目追加、Production release
 
@@ -237,7 +248,7 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 | Core | Unit | shared payload classification / coordinate validation / bearing / max-5 rule |
 | Application | Unit/Integration | ReceiveSharedPlace / Register / Delete / ShowDirection |
 | Infrastructure | Integration | localStorage / Geolocation / Share Target / resolver client |
-| Server | Unit/Integration | request validation / Maps Grounding response / Places response / secret absence |
+| Server | Unit/Integration | request validation / Rate Limiter / Maps Grounding response / Places response / secret absence |
 | UI | Regression/E2E | Share -> Confirm -> Save -> Select -> Direction / mobile layout |
 | Security | Static/Regression | URL allowlist / XSS / secret exposure / no sensitive logging |
 | Release | Manual | Production/Preview / Android Google Maps share / permission flows |
@@ -246,5 +257,4 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 
 - TBD-APP-003: Device Orientation APIのAndroid実機差・補正方法
 - TBD-APP-004: 16方位/8方位/角度表示の最終UI
-- TBD-APP-006: Google API利用量が増えた場合のRate Limit方式
 - TBD-APP-007: Web Share Target非対応環境の正式fallback UX

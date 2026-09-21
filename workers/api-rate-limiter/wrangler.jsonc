@@ -1,0 +1,17 @@
+{
+  "name": "omoi-no-hougaku-rate-limiter",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-22",
+  "workers_dev": false,
+  "preview_urls": false,
+  "ratelimits": [
+    {
+      "name": "API_RATE_LIMITER",
+      "namespace_id": "20260922",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    }
+  ]
+}

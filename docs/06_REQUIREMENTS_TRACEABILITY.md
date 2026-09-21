@@ -22,12 +22,13 @@ ACTIVE / NEW相当の要件をDEFERRED/REMOVEDへ変える場合はIssue/PRに�
 | REQ-002 | 地点へ任意の表示名を設定 | APP-002, APP-011, DATA-001 | ADR-0002 | #31 | `public/index.html`, `public/js/app/register-place.js`, `public/js/infrastructure/place-repository.js` | `place-repository.test.mjs` +人間UI確認 | ACTIVE |
 | REQ-003 | 最大5地点を端末内保存 | APP-011, APP-030, DATA-001, DATA-002 | ADR-0002 | #31 | `public/js/infrastructure/place-repository.js` | `place-repository.test.mjs` | ACTIVE |
 | REQ-004 | 保存地点の一覧・選択・削除 | APP-001, APP-030 | ADR-0002 | #31 | `public/js/ui/app-view.js`, `public/app.js`, `public/js/infrastructure/place-repository.js` | `place-repository.test.mjs` +人間UI確認 | ACTIVE |
-| REQ-005 | 現在地取得 | APP-031, IF-002 | - | 本番Implementation Issueで作成 | 未実装 | 未実装 | ACTIVE |
-| REQ-006 | 現在地から目的地への初期方位角計算 | APP-022 | - | 本番Implementation Issueで作成 | 未実装 | 未実装 | ACTIVE |
-| REQ-007 | 端末方位と目的地方向を表示 | APP-003, APP-012, APP-032, IF-003 | - | 本番Implementation Issueで作成 | 未実装 | 未実装 | ACTIVE |
+| REQ-005 | 現在地取得 | APP-031, IF-002 | ADR-0006 (Proposed) | #51 | 未実装 | Geolocation unit/integration + Android permission | ACTIVE |
+| REQ-006 | 現在地から目的地への初期方位角計算 | APP-022 | ADR-0006 (Proposed) | #51 | 未実装（Yohai Compass参照実装あり） | known-coordinate bearing/distance unit | ACTIVE |
+| REQ-007 | 端末方位と目的地方向を表示 | APP-003, APP-012, APP-032, APP-040, IF-003, IF-012 | ADR-0006 (Proposed) | #51 | 未実装（Yohai Compass参照実装あり） | heading/alignment/WMM unit + 変更境界のAndroid実機 | ACTIVE |
 | REQ-008 | Google Mapsを外部で開く | UI-005, IF-004 | ADR-0004 | #31 | `public/index.html` | 人間UI確認 | ACTIVE |
 | REQ-009 | PWAとしてインストール | APP §11 | ADR-0004 | #18 #25 #27 #29 #31 | `public/manifest.webmanifest`, `public/sw.js`, `public/assets/app-icon.svg` | CI manifest/service worker validation + Android実機 | ACTIVE |
 | REQ-010 | Google Maps共有先として受信 | APP-033, IF-005 | ADR-0004 | #18 #25 #27 #29 #31 | `public/manifest.webmanifest`, `public/sw.js`, `public/app.js` | CI share_target validation + Android実機 | ACTIVE |
+| REQ-011 | Compass / Japan Map / World Mapで方向・位置関係を確認 | APP-003, APP-012, APP-037, APP-038, APP-039, DATA-008, DATA-009, IF-011 | ADR-0006 (Proposed) | #51 | 未実装 / `docs/design/01_DIRECTION_COMPASS_MAP.md` | map mode / great-circle / antimeridian unit + Android changed-boundary review | ACTIVE |
 | NFR-001 | 登録地点をサーバーDBへ保存しない | ARCH Security / APP-030 | ADR-0002, ADR-0004 | 全関連Issue | Resolver stateless / `PlaceRepository` localStorage | `place-repository.test.mjs` + Network review | ACTIVE |
 | NFR-002 | 外部入力を検証し未検証HTML挿入を避ける | APP-020, APP-021, APP §13 | ADR-0004 | #25 #29 #31 | Production classifier + `textContent` DOM生成 + Function validation | classifier異常系 + static review | ACTIVE |
 | NFR-003 | 解析失敗時に推測座標を返さない | APP-010, APP-020, APP-021, APP-035 | ADR-0004 | #22 #25 #29 #31 | `receive-shared-place.js` / resolver error handling | invalid/unsupported + Android実機 | ACTIVE |
@@ -39,6 +40,7 @@ ACTIVE / NEW相当の要件をDEFERRED/REMOVEDへ変える場合はIssue/PRに�
 | NFR-009 | 施設解決時のURL/Place ID/座標を永続保存/log出力しない | ARCH §8, APP-035, IF-007 | ADR-0004 | #20 #22 #29 | Pages Function | Code/runtime review | ACTIVE |
 | NFR-010 | 任意ピンは外部APIへ送らず端末内で確定 | ARCH-005, APP-020, APP-021 | ADR-0004 | #25 #29 #31 | `classifySharedLocation` + `receiveSharedPlace` | `receive-shared-place.test.mjs`でresolver未呼出確認 + Android実機 | ACTIVE |
 | NFR-011 | Google API keyをBrowserへ露出しない | ARCH-006, ARCH-016, APP §13 | ADR-0004 | #20 #22 #29 | Cloudflare Secret | source/runtime review | ACTIVE |
+| NFR-012 | Direction地図で現在地・目的地を外部Map providerへ送信しない | APP-037, APP-038, IF-011 | ADR-0006 (Proposed) | #51 | same-origin vector map設計 | Network/static asset review | ACTIVE |
 
 ## 4. 地点登録PoCの最終判定
 
@@ -79,3 +81,18 @@ Release前に確認する。
 - Test/確認方法があるか
 - REPLACED/DEFERRED/REMOVEDに理由が残っているか
 - 実装だけ存在し要件に紐づかない機能がないか
+
+
+## 8. Direction / Map design status
+
+Issue #51では `ha-rookie/yohai-compass` の実績ある方位処理・Map Overviewを参照し、別Repository runtime dependencyにはせず「想いの方角」へ移植する。
+
+設計差分:
+- 宗教固有UIを一般化
+- Compass / Mapで1つのGuidance Sessionを共有
+- 国内2点はJapan Map
+- 海外を含む場合はWorld Map
+- World Map connectionはgreat-circle + antimeridian処理
+- Map表示だけでは外部Map providerへ座標を送らない
+
+人間実機確認は、Yohai Compassで既確認の機能を全て再実施するのではなく、移植時に変更した境界とJapan/World切替を重点対象とする。

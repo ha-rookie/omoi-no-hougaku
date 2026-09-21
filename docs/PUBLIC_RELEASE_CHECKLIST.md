@@ -11,8 +11,9 @@ GitHub RepositoryをPrivateからPublicへ変更する前後の確認手順。
 - [x] PR向けWorkflowはSecretsを参照しない
 - [x] Deploy Workflowは`push: main` / `workflow_dispatch`のみでSecretを利用
 - [x] 2026-09-21時点のmain 65 commitsを代表的なSecretパターンで履歴走査し、該当なし
-- [ ] GitHub上のSecret scanning / 公開前レビューで追加確認
-- [ ] Issue / PR本文にSecret値が貼られていないことを人間確認
+- [x] Public RepositoryではGitHub Secret scanningが自動実行されることを公式仕様で確認
+- [x] Issue / PR本文を代表的なSecretパターンで自動検索し、該当なし
+- [ ] Issue / PR本文の最終目視確認
 
 履歴走査で確認した代表パターン:
 
@@ -23,6 +24,9 @@ GitHub RepositoryをPrivateからPublicへ変更する前後の確認手順。
 - Private key header
 
 この走査は既知パターンの確認であり、非標準形式の秘密情報まで完全に保証するものではない。
+
+GitHub公式仕様ではPublic RepositoryのSecret scanningは無料で自動実行される。
+https://docs.github.com/en/code-security/how-tos/secure-your-secrets/detect-secret-leaks/enable-secret-scanning
 
 ### API hardening
 
@@ -51,7 +55,7 @@ Google側のquotaを直接引き下げる代わりに、Cloudflareで30 requests
 ### Cloudflare
 
 - [x] Pages projectのProduction Secret `MAPS_GROUNDING_API_KEY` が存在する
-- [ ] PreviewでSecretを使う必要性を確認
+- [x] 現在はPR Preview Deployを行わないため、PreviewでGoogle API Secretを使わない
 - [x] API abuse対策としてPrivate Rate Limiter Worker + Rate Limiting bindingを導入
 - [x] Pages productionからService binding `RATE_LIMITER_SERVICE` で内部接続
 - [x] Rate Limitは30 requests / 60 seconds

@@ -28,6 +28,21 @@ export class AppView {
     this.emptyState = documentRef.querySelector('#empty-state');
     this.selectedPanel = documentRef.querySelector('#selected-panel');
     this.selectedName = documentRef.querySelector('#selected-name');
+    this.startDirectionButton = documentRef.querySelector('#start-direction');
+    this.directionPanel = documentRef.querySelector('#direction-panel');
+    this.directionTargetName = documentRef.querySelector('#direction-target-name');
+    this.directionStatus = documentRef.querySelector('#direction-status');
+    this.directionContent = documentRef.querySelector('#direction-content');
+    this.closeDirectionButton = documentRef.querySelector('#close-direction');
+    this.directionCompass = documentRef.querySelector('#direction-compass');
+    this.compassRotor = documentRef.querySelector('#compass-rotor');
+    this.currentHeadingNeedle = documentRef.querySelector('#current-heading-needle');
+    this.targetBearingPrimary = documentRef.querySelector('#target-bearing-primary');
+    this.targetBearingLabel = documentRef.querySelector('#target-bearing-label');
+    this.currentHeadingLabel = documentRef.querySelector('#current-heading-label');
+    this.distanceLabel = documentRef.querySelector('#distance-label');
+    this.turnInstruction = documentRef.querySelector('#turn-instruction');
+    this.compassFallbackNote = documentRef.querySelector('#compass-fallback-note');
 
     this.nameInput.maxLength = MAX_PLACE_NAME_LENGTH;
   }
@@ -57,6 +72,14 @@ export class AppView {
       event.preventDefault();
       handler(this.nameInput.value);
     });
+  }
+
+  onStartDirection(handler) {
+    this.startDirectionButton.addEventListener('click', handler);
+  }
+
+  onCloseDirection(handler) {
+    this.closeDirectionButton.addEventListener('click', handler);
   }
 
   renderPlaces(places, { selectedId = null, onSelect, onDelete } = {}) {
@@ -107,4 +130,75 @@ export class AppView {
     this.selectedPanel.hidden = false;
     this.selectedName.textContent = place.name;
   }
+
+  showDirectionLoading(place) {
+    this.directionPanel.hidden = false;
+    this.directionTargetName.textContent = place?.name ?? '目的地';
+    this.directionStatus.textContent = '現在地を確認しています…';
+    this.directionStatus.className = 'status';
+    this.directionContent.hidden = true;
+    this.compassFallbackNote.hidden = true;
+    this.startDirectionButton.disabled = true;
+    this.directionPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  showDirectionError(message) {
+    this.directionPanel.hidden = false;
+    this.directionStatus.textContent = message;
+    this.directionStatus.className = 'status error';
+    this.directionContent.hidden = true;
+    this.startDirectionButton.disabled = false;
+  }
+
+  renderDirectionSession(session) {
+    const bearing = session.targetBearing;
+    this.directionContent.hidden = false;
+    this.directionStatus.textContent = '方角を確認できます。';
+    this.directionStatus.className = 'status ok';
+    this.targetBearingPrimary.textContent =
+      `目標方位 ${Math.round(bearing)}° ${session.targetDirectionLabel}`;
+    this.targetBearingLabel.textContent =
+      `${Math.round(bearing)}° ${session.targetDirectionLabel}`;
+    this.currentHeadingLabel.textContent = '—';
+    this.distanceLabel.textContent = formatDistance(session.distanceMeters);
+    this.turnInstruction.textContent = 'コンパスを確認しています…';
+
+    this.compassRotor.style.transform = `rotate(${-bearing}deg)`;
+    this.directionCompass.style.setProperty('--compass-counter', `${bearing}deg`);
+    this.currentHeadingNeedle.style.transform =
+      'translate(-50%, -100%) rotate(0deg)';
+    this.startDirectionButton.disabled = false;
+  }
+
+  renderDirectionHeading(session) {
+    if (!Number.isFinite(session.currentHeading)) return;
+
+    this.currentHeadingLabel.textContent =
+      `${Math.round(session.currentHeading)}°`;
+    this.turnInstruction.textContent = session.alignment.message;
+    this.currentHeadingNeedle.style.transform =
+      `translate(-50%, -100%) rotate(${session.relativeAngle ?? 0}deg)`;
+    this.directionCompass.dataset.aligned = String(Boolean(session.alignment.aligned));
+  }
+
+  setCompassUnavailable(message) {
+    this.currentHeadingLabel.textContent = '利用できません';
+    this.turnInstruction.textContent = '角度と距離を確認してください。';
+    this.compassFallbackNote.hidden = false;
+    this.compassFallbackNote.textContent = message;
+  }
+
+  hideDirection() {
+    this.directionPanel.hidden = true;
+    this.directionContent.hidden = true;
+    this.directionCompass.dataset.aligned = 'false';
+    this.startDirectionButton.disabled = false;
+  }
+}
+
+function formatDistance(meters) {
+  if (!Number.isFinite(meters)) return '—';
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  if (meters < 100000) return `${(meters / 1000).toFixed(1)} km`;
+  return `${Math.round(meters / 1000)} km`;
 }

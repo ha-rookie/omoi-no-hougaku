@@ -1,6 +1,12 @@
 const COORDINATE_PATTERN = /^\s*([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*,\s*([+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*$/;
+const COORDINATE_LIKE_PATTERN = /^\s*[+-]?(?:\d+(?:\.\d+)?|\.\d+)\s*,/;
+const MAX_TITLE_LENGTH = 512;
 const MAX_MAPS_URL_LENGTH = 2048;
 const MAX_SHARED_TEXT_LENGTH = 4096;
+const GENERIC_PIN_TITLES = new Set([
+  '指定した地点',
+  'dropped pin',
+]);
 
 export function isValidCoordinates(latitude, longitude) {
   return (
@@ -13,8 +19,16 @@ export function isValidCoordinates(latitude, longitude) {
   );
 }
 
+function normalizeTitle(rawTitle) {
+  if (typeof rawTitle !== 'string') return '';
+  if (rawTitle.length > MAX_TITLE_LENGTH) return '';
+  return rawTitle.trim();
+}
+
 export function parseCoordinateTitle(rawTitle) {
-  const title = typeof rawTitle === 'string' ? rawTitle : '';
+  const title = normalizeTitle(rawTitle);
+  if (!title) return null;
+
   const match = title.match(COORDINATE_PATTERN);
   if (!match) return null;
 
@@ -23,6 +37,11 @@ export function parseCoordinateTitle(rawTitle) {
   if (!isValidCoordinates(latitude, longitude)) return null;
 
   return { latitude, longitude };
+}
+
+export function looksLikeCoordinateTitle(rawTitle) {
+  const title = normalizeTitle(rawTitle);
+  return Boolean(title && COORDINATE_LIKE_PATTERN.test(title));
 }
 
 function normalizeMapsShortUrl(rawValue) {
@@ -58,12 +77,35 @@ export function extractGoogleMapsUrl(payload = {}) {
 }
 
 export function classifySharedLocation(payload = {}) {
-  const coordinate = parseCoordinateTitle(payload.title);
+  const title = normalizeTitle(payload.title);
+  const coordinate = parseCoordinateTitle(title);
+
   if (coordinate) {
     return {
       kind: 'coordinate',
       sourceType: 'shared-title-coordinate',
       ...coordinate,
+    };
+  }
+
+  // ADR-0004: a pin whose title looks like coordinates but is invalid must
+  // never fall back to Place ID resolution, because that can resolve a
+  // nearby named place instead of the original pin.
+  if (looksLikeCoordinateTitle(title)) {
+    return {
+      kind: 'unsupported',
+      sourceType: 'unsupported',
+      reason: 'invalid-coordinate-title',
+    };
+  }
+
+  // ADR-0004: generic/unnamed pins must not use the Maps URL API fallback.
+  // Only a named facility is allowed to enter the Place ID resolution path.
+  if (!title || GENERIC_PIN_TITLES.has(title.toLowerCase())) {
+    return {
+      kind: 'unsupported',
+      sourceType: 'unsupported',
+      reason: 'unconfirmed-pin-title',
     };
   }
 
@@ -79,5 +121,6 @@ export function classifySharedLocation(payload = {}) {
   return {
     kind: 'unsupported',
     sourceType: 'unsupported',
+    reason: 'maps-url-not-found',
   };
 }

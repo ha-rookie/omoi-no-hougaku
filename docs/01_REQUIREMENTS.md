@@ -42,6 +42,7 @@
 | REQ-008 | Google Mapsを外部で開ける | Should | 地点探索のためGoogle Mapsへ遷移できる | Planned |
 | REQ-009 | Androidを主対象としてPWAとしてインストールできる | Must | manifest/service workerが有効で、インストール済みアプリとして起動できる | Active |
 | REQ-010 | Google Mapsから共有先として直接受け取れる | Must | Android Google Mapsの共有先に表示され、共有title/text/urlをWeb Share Targetで受信できる | Active |
+| REQ-011 | Direction画面でコンパスと地図を切り替えて現在地と目的地の関係を確認できる | Must | 国内2点は日本地図、海外を含む場合は世界地図を表示し、現在地・目的地・北・距離・目標方位を確認できる | Planned |
 
 ## 6. 非機能要件
 
@@ -58,6 +59,7 @@
 | NFR-009 | Privacy | 名称付き施設の解決に必要な共有URLは一時処理に限定し、入力URL・Place ID・取得座標を永続保存またはApplication logへ出力しない | Code review / runtime review |
 | NFR-010 | Privacy | 任意ピンの共有titleが有効な緯度経度なら外部APIへ送信せず端末内で確定する | Network review / unit test |
 | NFR-011 | Security | Google API keyをブラウザへ露出させずCloudflare Secretで管理する | Build/source review / runtime review |
+| NFR-012 | Privacy | Direction地図のために現在地・目的地を外部Map providerへ送信しない | Network review / static asset review |
 
 ## 7. データ・外部情報要件
 
@@ -69,6 +71,7 @@
 - 更新頻度: 地点情報はユーザーの新規登録操作時のみ更新
 - 正確性・欠損時の扱い: 座標が検証できない場合は保存させず、取得失敗を明示する
 - 個人情報・秘密情報: 表示名と登録地点はセンシティブ情報になり得る。永続保存は端末内を原則とする
+- Direction地図: Japan/World GeoJSONと地図runtimeはsame-origin static assetを原則とし、現在地・目的地を外部Map providerへ送信しない
 
 ## 8. 制約
 
@@ -81,6 +84,7 @@
 - 運用制約: DB・ユーザーアカウントを持たない
 - プライバシー制約: 任意ピンは可能な限り端末内で処理し、名称付き施設の共有URLだけ必要時にServer/API処理へ送る
 - 法務・規約上の制約: Google Mapsの非公開内部URL形式を解析する方式へ恒久依存しない
+- 地図制約: Directionの地図は経路検索ではなく位置関係overviewとし、raster tile/POI/衛星画像をMVPでは持たない
 
 ## 9. Out of Scope
 
@@ -103,6 +107,7 @@
 | TBD-004 | PWA/Web Share TargetをMVPに含めるか | Human | 統合PoC完了 | Resolved: MVPに含める |
 | TBD-005 | 保存地点の並び順を登録順固定とするか | Human | UI設計時 | Open |
 | TBD-006 | Google APIの利用量アラート/予算上限をどこまで設定するか | Human | Production release前 | Open |
+| TBD-007 | Japan/World GeoJSONのProduction採用source・license・簡略化方法 | Human | Direction Map実装前 | Open |
 
 ## 11. 要件変更管理
 

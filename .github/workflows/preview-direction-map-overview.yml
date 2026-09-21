@@ -49,8 +49,7 @@ jobs:
           set -euo pipefail
           rm -rf /tmp/direction-map-preview-public
           cp -a public /tmp/direction-map-preview-public
-          mkdir -p /tmp/direction-map-preview-public/__test__
-          cp tests/manual/direction-map-preview.html /tmp/direction-map-preview-public/__test__/direction-map.html
+          cp tests/manual/direction-map-preview.html /tmp/direction-map-preview-public/preview-test.html
 
       - name: Deploy Direction Map Preview
         id: deploy
@@ -73,7 +72,7 @@ jobs:
           for attempt in $(seq 1 20); do
             echo "Map Preview readiness attempt $attempt/20: $DEPLOYMENT_URL"
 
-            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/app.js" -o /tmp/app.js               && curl -fsS "$DEPLOYMENT_URL/styles.css" -o /tmp/styles.css               && curl -fsS "$DEPLOYMENT_URL/data/maps/japan-prefectures.geojson" -o /tmp/japan.geojson               && curl -fsS "$DEPLOYMENT_URL/data/maps/world-110m.geojson" -o /tmp/world.geojson               && curl -fsS "$DEPLOYMENT_URL/__test__/direction-map.html" -o /tmp/direction-map-test.html; then
+            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/app.js" -o /tmp/app.js               && curl -fsS "$DEPLOYMENT_URL/styles.css" -o /tmp/styles.css               && curl -fsS "$DEPLOYMENT_URL/data/maps/japan-prefectures.geojson" -o /tmp/japan.geojson               && curl -fsS "$DEPLOYMENT_URL/data/maps/world-110m.geojson" -o /tmp/world.geojson               && curl -fsS "$DEPLOYMENT_URL/preview-test.html" -o /tmp/direction-map-test.html; then
               ready=1
               break
             fi
@@ -104,4 +103,4 @@ jobs:
           set -euo pipefail
           test -n "$DEPLOYMENT_URL"
           echo "Direction Map Preview URL: $DEPLOYMENT_URL"
-          echo "Direction Map Test Setup URL: $DEPLOYMENT_URL/__test__/direction-map.html"
+          echo "Direction Map Test Setup URL: $DEPLOYMENT_URL/preview-test.html"

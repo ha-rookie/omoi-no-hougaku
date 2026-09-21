@@ -1,0 +1,83 @@
+name: Preview MVP place registration
+
+on:
+  push:
+    branches:
+      - feature/mvp-place-registration
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-mvp-place-registration
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate public source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s public/index.html
+          test -s public/app.js
+          test -s public/manifest.webmanifest
+          test -s public/sw.js
+          node --check public/app.js
+          node --check public/sw.js
+
+      - name: Deploy public directory as Cloudflare Pages preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=feature-mvp-place-registration --commit-dirty=true
+
+      - name: Preview smoke test
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+
+          ready=0
+          for attempt in $(seq 1 20); do
+            echo "Preview readiness attempt $attempt/20: $DEPLOYMENT_URL"
+
+            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/manifest.webmanifest" -o /tmp/manifest.webmanifest               && curl -fsS "$DEPLOYMENT_URL/app.js" -o /tmp/app.js               && curl -fsS "$DEPLOYMENT_URL/sw.js" -o /tmp/sw.js; then
+              ready=1
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo 'Preview did not become ready within 40 seconds.'
+            exit 1
+          fi
+
+          grep -Fq '<title>想いの方角</title>' /tmp/index.html
+          grep -Fq 'Google Mapsで場所を開き' /tmp/index.html
+          grep -Fq '"action": "/share-target"' /tmp/manifest.webmanifest
+          grep -Fq '"method": "POST"' /tmp/manifest.webmanifest
+          grep -Fq "navigator.serviceWorker.register('/sw.js'" /tmp/app.js
+          grep -Fq "requestUrl.pathname === '/share-target'" /tmp/sw.js
+
+      - name: Report preview URL
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+          echo "Preview URL: $DEPLOYMENT_URL"

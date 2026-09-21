@@ -254,6 +254,8 @@ export class AppView {
   showMapError(message) {
     this.mapModeLabel.textContent = '地図';
     this.mapSummary.textContent = '';
+    this.mapAttribution.hidden = true;
+    this.mapAttribution.textContent = '';
     this.mapOverview.replaceChildren();
     const error = this.document.createElement('p');
     error.className = 'status error';

@@ -42,39 +42,6 @@ let directionRunId = 0;
 let directionViewMode = 'compass';
 let mapRenderId = 0;
 
-function isPreviewTestMode() {
-  const hostname = location.hostname;
-  return (
-    new URLSearchParams(location.search).get('test') === '1' &&
-    hostname.endsWith('.omoi-no-hougaku.pages.dev') &&
-    hostname !== 'omoi-no-hougaku.pages.dev'
-  );
-}
-
-function loadPreviewTestPlaces() {
-  if (!isPreviewTestMode() || !repository) return;
-
-  for (const place of repository.list()) {
-    repository.remove(place.id);
-  }
-
-  repository.save({
-    name: '国内テスト・東京',
-    latitude: 35.681236,
-    longitude: 139.767125,
-  });
-  repository.save({
-    name: '海外テスト・ホノルル',
-    latitude: 21.3069,
-    longitude: -157.8583,
-  });
-
-  view.setStatus(
-    'Previewテスト用に東京とホノルルを登録しました。Google Maps共有は不要です。',
-    'ok'
-  );
-}
-
 function stopDirectionRuntime() {
   directionRunId += 1;
   mapRenderId += 1;
@@ -370,7 +337,6 @@ async function registerServiceWorker() {
 
 try {
   repository = new PlaceRepository();
-  loadPreviewTestPlaces();
   loadPlaces();
 } catch (error) {
   handleError(error);

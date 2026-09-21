@@ -1,0 +1,51 @@
+name: Preview MVP place registration
+
+on:
+  push:
+    branches:
+      - feature/mvp-place-registration
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-mvp-place-registration
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate public source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s public/index.html
+          test -s public/app.js
+          test -s public/manifest.webmanifest
+          test -s public/sw.js
+          node --check public/app.js
+          node --check public/sw.js
+
+      - name: Deploy public directory as Cloudflare Pages preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=feature-mvp-place-registration --commit-dirty=true
+
+      - name: Report preview URL
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+          echo "Preview URL: $DEPLOYMENT_URL"

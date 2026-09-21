@@ -43,6 +43,13 @@ export class AppView {
     this.distanceLabel = documentRef.querySelector('#distance-label');
     this.turnInstruction = documentRef.querySelector('#turn-instruction');
     this.compassFallbackNote = documentRef.querySelector('#compass-fallback-note');
+    this.modeCompassButton = documentRef.querySelector('#mode-compass');
+    this.modeMapButton = documentRef.querySelector('#mode-map');
+    this.compassModePanel = documentRef.querySelector('#compass-mode-panel');
+    this.mapModePanel = documentRef.querySelector('#map-mode-panel');
+    this.mapOverview = documentRef.querySelector('#map-overview');
+    this.mapModeLabel = documentRef.querySelector('#map-mode-label');
+    this.mapSummary = documentRef.querySelector('#map-summary');
 
     this.nameInput.maxLength = MAX_PLACE_NAME_LENGTH;
   }
@@ -80,6 +87,11 @@ export class AppView {
 
   onCloseDirection(handler) {
     this.closeDirectionButton.addEventListener('click', handler);
+  }
+
+  onDirectionModeChange(handler) {
+    this.modeCompassButton.addEventListener('click', () => handler('compass'));
+    this.modeMapButton.addEventListener('click', () => handler('map'));
   }
 
   renderPlaces(places, { selectedId = null, onSelect, onDelete } = {}) {
@@ -162,6 +174,8 @@ export class AppView {
     this.currentHeadingLabel.textContent = '—';
     this.distanceLabel.textContent = formatDistance(session.distanceMeters);
     this.turnInstruction.textContent = 'コンパスを確認しています…';
+    this.setDirectionMode('compass');
+    this.resetMapOverview();
 
     this.compassRotor.style.transform = `rotate(${-bearing}deg)`;
     this.directionCompass.style.setProperty('--compass-counter', `${bearing}deg`);
@@ -188,10 +202,61 @@ export class AppView {
     this.compassFallbackNote.textContent = message;
   }
 
+  setDirectionMode(mode) {
+    const isMap = mode === 'map';
+    this.modeCompassButton.setAttribute('aria-pressed', String(!isMap));
+    this.modeMapButton.setAttribute('aria-pressed', String(isMap));
+    this.compassModePanel.hidden = isMap;
+    this.mapModePanel.hidden = !isMap;
+  }
+
+  getMapOverviewContainer() {
+    return this.mapOverview;
+  }
+
+  resetMapOverview() {
+    this.mapModeLabel.textContent = '地図';
+    this.mapSummary.textContent = '';
+    this.mapOverview.replaceChildren();
+    const loading = this.document.createElement('p');
+    loading.className = 'muted';
+    loading.textContent = '地図を準備しています…';
+    this.mapOverview.append(loading);
+  }
+
+  showMapLoading() {
+    this.mapModeLabel.textContent = '地図';
+    this.mapSummary.textContent = '';
+    this.mapOverview.replaceChildren();
+    const loading = this.document.createElement('p');
+    loading.className = 'muted';
+    loading.textContent = '地図を準備しています…';
+    this.mapOverview.append(loading);
+  }
+
+  showMapReady(result) {
+    this.mapModeLabel.textContent =
+      result.mode === 'japan' ? '日本地図' : '世界地図';
+    this.mapSummary.textContent =
+      `${formatDistance(result.distanceMeters)} ・ ${Math.round(result.targetBearing)}° ${result.targetDirectionLabel}`;
+  }
+
+  showMapError(message) {
+    this.mapModeLabel.textContent = '地図';
+    this.mapSummary.textContent = '';
+    this.mapOverview.replaceChildren();
+    const error = this.document.createElement('p');
+    error.className = 'status error';
+    error.textContent = message;
+    this.mapOverview.append(error);
+  }
+
   hideDirection() {
     this.directionPanel.hidden = true;
     this.directionContent.hidden = true;
     this.directionCompass.dataset.aligned = 'false';
+    this.setDirectionMode('compass');
+    this.resetMapOverview();
     this.startDirectionButton.disabled = false;
   }
 }

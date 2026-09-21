@@ -25,6 +25,7 @@
 | `adr/` | なぜ重要な技術判断をしたか | 代替案がある重要な設計判断 |
 | `GIT_WORKFLOW.md` | Git/PRをどう進めるか | Git運用変更 |
 | `CLOUDFLARE_SETUP.md` | Cloudflareをどう構成・確認するか | Cloudflare構成変更 |
+| `PUBLIC_RELEASE_CHECKLIST.md` | PrivateからPublicへ安全に移行するには何を確認するか | Repository公開・Security境界変更 |
 | `ASSET_WORKFLOW.md` | Assetをどう生成・承認・引き継ぐか | Asset運用変更 |
 | `RELEASE_CHECKLIST.md` | 何を確認して公開するか | Release条件変更 |
 | `TROUBLESHOOTING.md` | 既知問題をどう回避・復旧するか | 再発可能な障害・制約の発見 |

@@ -54,6 +54,7 @@ jobs:
           test -s public/js/core/bearing-engine.js
           test -s public/js/core/heading-normalizer.js
           test -s public/js/core/alignment-engine.js
+          test -s public/js/core/map-geometry.js
           test -s public/js/app/direction-session.js
           test -s public/js/infrastructure/location-provider.js
           test -s public/js/infrastructure/heading-provider.js
@@ -67,6 +68,12 @@ jobs:
           test -s public/js/infrastructure/location-resolver-client.js
           test -s public/js/infrastructure/place-repository.js
           test -s public/js/ui/app-view.js
+          test -s public/js/ui/map-overview.js
+          test -s public/data/maps/japan-prefectures.geojson
+          test -s public/data/maps/world-110m.geojson
+          test -s public/licenses/japan-map-selector-LICENSE.txt
+          test -s public/licenses/japan-map-selector-ATTRIBUTION.md
+          test -s public/licenses/world-atlas-LICENSE.txt
 
           node --check public/app.js
           node --check public/sw.js
@@ -74,6 +81,7 @@ jobs:
           node --check public/js/core/bearing-engine.js
           node --check public/js/core/heading-normalizer.js
           node --check public/js/core/alignment-engine.js
+          node --check public/js/core/map-geometry.js
           node --check public/js/app/direction-session.js
           node --check public/js/infrastructure/location-provider.js
           node --check public/js/infrastructure/heading-provider.js
@@ -84,6 +92,7 @@ jobs:
           node --check public/js/infrastructure/location-resolver-client.js
           node --check public/js/infrastructure/place-repository.js
           node --check public/js/ui/app-view.js
+          node --check public/js/ui/map-overview.js
 
           node --check tests/request-security.test.mjs
           node --check tests/rate-limiter-worker.test.mjs
@@ -96,6 +105,10 @@ jobs:
           node --check tests/direction-session.test.mjs
           node --check tests/heading-provider.test.mjs
           node --check tests/wmm2025-runtime.test.mjs
+          node --check tests/map-geometry.test.mjs
+
+          node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('public/data/maps/japan-prefectures.geojson','utf8')); if(j.features?.length !== 47) process.exit(1)"
+          node -e "const fs=require('fs'); const w=JSON.parse(fs.readFileSync('public/data/maps/world-110m.geojson','utf8')); if(!Array.isArray(w.features) || w.features.length < 100) process.exit(1)"
 
           node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('public/manifest.webmanifest','utf8')); if(!m.share_target || m.share_target.method !== 'POST' || m.share_target.action !== '/share-target') process.exit(1)"
           grep -Fq "navigator.serviceWorker.register('/sw.js'" public/app.js
@@ -131,3 +144,4 @@ jobs:
           node tests/direction-session.test.mjs
           node --test tests/heading-provider.test.mjs
           node --test tests/wmm2025-runtime.test.mjs
+          node tests/map-geometry.test.mjs

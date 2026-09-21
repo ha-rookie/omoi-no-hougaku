@@ -26,8 +26,8 @@
 - [ ] Google API keyのAPI制限がMaps Grounding Lite + Places API (New)に限定されていることを確認
 - [ ] Google Cloudの利用量・課金状態・予算アラートを確認
 - [x] API abuse対策は専用Cloudflare Worker + Rate Limiting binding方式に決定（ADR-0005）
-- [ ] Rate Limiter WorkerをProductionへDeploy
-- [ ] Pages projectへRate Limiter WorkerのService bindingを追加
+- [x] Rate Limiter WorkerをProductionへDeploy（Worker version `0106d89a-c32e-48e0-a298-394b2730b4cf`）
+- [ ] Pages projectへRate Limiter WorkerのService binding `RATE_LIMITER_SERVICE` を追加
 - [ ] SEO/robots/Preview noindexを本番方針に合わせる
 
 ## 2. Deploy方式
@@ -104,7 +104,7 @@ MVP本番で必要なEndpoint:
 - `preview_urls: false`
 - 初期値: 30 requests / 60 seconds
 - key: `resolve-location`
-- Pages側binding名: `RATE_LIMITER_SERVICE` を予定
+- Pages側binding名: `RATE_LIMITER_SERVICE`
 
 ## 5. Environment Separation
 

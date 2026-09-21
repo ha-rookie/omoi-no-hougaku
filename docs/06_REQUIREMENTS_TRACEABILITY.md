@@ -22,9 +22,9 @@ ACTIVE / NEW相当の要件をDEFERRED/REMOVEDへ変える場合はIssue/PRに�
 | REQ-002 | 地点へ任意の表示名を設定 | APP-002, APP-011, DATA-001 | ADR-0002 | #31 | `public/index.html`, `public/js/app/register-place.js`, `public/js/infrastructure/place-repository.js` | `place-repository.test.mjs` +人間UI確認 | ACTIVE |
 | REQ-003 | 最大5地点を端末内保存 | APP-011, APP-030, DATA-001, DATA-002 | ADR-0002 | #31 | `public/js/infrastructure/place-repository.js` | `place-repository.test.mjs` | ACTIVE |
 | REQ-004 | 保存地点の一覧・選択・削除 | APP-001, APP-030 | ADR-0002 | #31 | `public/js/ui/app-view.js`, `public/app.js`, `public/js/infrastructure/place-repository.js` | `place-repository.test.mjs` +人間UI確認 | ACTIVE |
-| REQ-005 | 現在地取得 | APP-031, IF-002 | ADR-0006 | #51 | 未実装 | Geolocation unit/integration + Android permission | ACTIVE |
-| REQ-006 | 現在地から目的地への初期方位角計算 | APP-022 | ADR-0006 | #51 | 未実装（Yohai Compass参照実装あり） | known-coordinate bearing/distance unit | ACTIVE |
-| REQ-007 | 端末方位と目的地方向を表示 | APP-003, APP-012, APP-032, APP-040, IF-003, IF-012 | ADR-0006 | #51 | 未実装（Yohai Compass参照実装あり） | heading/alignment/WMM unit + 変更境界のAndroid実機 | ACTIVE |
+| REQ-005 | 現在地取得 | APP-031, IF-002 | ADR-0006 | #51 #53 | `public/js/infrastructure/location-provider.js`, `public/app.js` | Yohai移植 + Direction integration + Android changed-boundary review | ACTIVE |
+| REQ-006 | 現在地から目的地への初期方位角計算 | APP-022 | ADR-0006 | #51 #53 | `public/js/core/bearing-engine.js`, `public/js/app/direction-session.js` | `direction-core.test.mjs`, `direction-session.test.mjs` | ACTIVE |
+| REQ-007 | 端末方位と目的地方向を表示 | APP-003, APP-012, APP-032, APP-040, IF-003, IF-012 | ADR-0006 | #51 #53 | `public/index.html`, `public/styles.css`, `public/app.js`, `public/js/core/heading-normalizer.js`, `public/js/core/alignment-engine.js`, `public/js/infrastructure/heading-provider.js`, `public/js/infrastructure/declination-provider.js` | Direction core/session + heading source + WMM NOAA reference + Android changed-boundary review | ACTIVE |
 | REQ-008 | Google Mapsを外部で開く | UI-005, IF-004 | ADR-0004 | #31 | `public/index.html` | 人間UI確認 | ACTIVE |
 | REQ-009 | PWAとしてインストール | APP §11 | ADR-0004 | #18 #25 #27 #29 #31 | `public/manifest.webmanifest`, `public/sw.js`, `public/assets/app-icon.svg` | CI manifest/service worker validation + Android実機 | ACTIVE |
 | REQ-010 | Google Maps共有先として受信 | APP-033, IF-005 | ADR-0004 | #18 #25 #27 #29 #31 | `public/manifest.webmanifest`, `public/sw.js`, `public/app.js` | CI share_target validation + Android実機 | ACTIVE |
@@ -96,3 +96,18 @@ Issue #51では `ha-rookie/yohai-compass` の実績ある方位処理・Map Over
 - Map表示だけでは外部Map providerへ座標を送らない
 
 人間実機確認は、Yohai Compassで既確認の機能を全て再実施するのではなく、移植時に変更した境界とJapan/World切替を重点対象とする。
+
+
+## 9. Direction core implementation status
+
+Issue #53 implementation branch:
+
+- Yohai Compassのbearing/distance/heading/alignment/Geolocation/WMM2025を本Repositoryへ移植
+- 別Repositoryへのruntime依存なし
+- WMM runtime/data/licenseをsame-originで保持
+- Guidance Sessionはruntime memoryのみ
+- 保存地点選択からDirection Compassへ接続
+- Orientation unavailable時はbearing/distanceへ縮退
+- MapはIssue #54のまま未実装
+
+人間確認はYohaiで既確認の全項目を繰り返さず、「保存地点→Direction」「permission UX」「想いの方角Compass UI」「Android needle追随」を重点対象とする。

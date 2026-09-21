@@ -21,13 +21,13 @@
 
 - [ ] Output Directoryを`public/`へ変更
 - [ ] `public/manifest.webmanifest` / `public/sw.js`をDeploy対象化
-- [ ] `/api/resolve-location`のProduction smoke testを維持
+- [x] `/api/resolve-location`のProduction smoke testを維持（run 35620925277で成功）
 - [ ] Preview DeployでSecret/API呼出をどう扱うか確認
 - [ ] Google API keyのAPI制限がMaps Grounding Lite + Places API (New)に限定されていることを確認
 - [ ] Google Cloudの利用量・課金状態・予算アラートを確認
 - [x] API abuse対策は専用Cloudflare Worker + Rate Limiting binding方式に決定（ADR-0005）
 - [x] Rate Limiter WorkerをProductionへDeploy（Worker version `0106d89a-c32e-48e0-a298-394b2730b4cf`）
-- [ ] GitHub ActionsからPages productionへService binding `RATE_LIMITER_SERVICE` を自動設定
+- [x] GitHub ActionsからPages productionへService binding `RATE_LIMITER_SERVICE` を自動設定（run 35620925277で成功）
 - [ ] SEO/robots/Preview noindexを本番方針に合わせる
 
 ## 2. Deploy方式
@@ -163,3 +163,13 @@ PoCは技術検証用。MVP本番化IssueでHTTPS、canonical、title、descript
 - API障害: 新規名称付き施設登録だけを失敗させ、保存済み地点利用へ波及させない
 - Security smoke test: OriginなしPOSTは403 / `ORIGIN_REQUIRED`
 - Cost review: Production release前後にGoogle Cloud Consoleで利用量・課金を確認する
+
+## 10. Rate Limiter導入確認
+
+- Rate Limiter Worker Deploy: success
+- Worker version: `0106d89a-c32e-48e0-a298-394b2730b4cf`
+- Pages Service binding自動設定: success
+- Production Pages deploy: success
+- Production smoke test: success
+- Production main SHA: `87abc85200f927d72e3ba80c351b330a040de1fd`
+- 意図的な30回超過の本番負荷試験はGoogle APIへの不要な実リクエストを避けるため未実施。Rate Limiter Worker単体testとPages Service binding client testで429/503経路を確認済み

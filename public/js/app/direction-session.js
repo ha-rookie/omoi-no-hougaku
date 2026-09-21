@@ -105,7 +105,8 @@ export function updateDirectionSessionHeading(
   return {
     ...session,
     currentHeading: trueHeading,
-    relativeAngle: evaluation.delta === null ? null : -evaluation.delta,
+    relativeAngle:
+      evaluation.delta === null ? null : evaluation.delta === 0 ? 0 : -evaluation.delta,
     alignment: evaluation,
   };
 }

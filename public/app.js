@@ -11,12 +11,155 @@ import {
   receiveSharedPlace,
 } from './js/app/receive-shared-place.js';
 import { registerPlace } from './js/app/register-place.js';
+import {
+  createDirectionSession,
+  DirectionSessionError,
+  updateDirectionSessionHeading,
+} from './js/app/direction-session.js';
+import {
+  GeolocationError,
+  getCurrentLocation,
+} from './js/infrastructure/location-provider.js';
+import {
+  HeadingError,
+  isHeadingSupported,
+  requestHeadingPermission,
+  startHeadingUpdates,
+} from './js/infrastructure/heading-provider.js';
+import { getMagneticDeclination } from './js/infrastructure/declination-provider.js';
 import { AppView } from './js/ui/app-view.js';
 
 const view = new AppView();
 let repository;
 let candidate = null;
 let selectedId = null;
+let activeDirectionSession = null;
+let activeDeclinationDegrees = null;
+let latestHeadingReading = null;
+let stopHeadingUpdates = null;
+let directionRunId = 0;
+
+function stopDirectionRuntime() {
+  directionRunId += 1;
+  stopHeadingUpdates?.();
+  stopHeadingUpdates = null;
+  activeDirectionSession = null;
+  activeDeclinationDegrees = null;
+  latestHeadingReading = null;
+}
+
+function selectedPlace() {
+  if (!repository || !selectedId) return null;
+  return repository.list().find((place) => place.id === selectedId) ?? null;
+}
+
+function applyLatestHeading() {
+  if (
+    !activeDirectionSession ||
+    !latestHeadingReading?.usable ||
+    !Number.isFinite(activeDeclinationDegrees)
+  ) {
+    return;
+  }
+
+  activeDirectionSession = updateDirectionSessionHeading(
+    activeDirectionSession,
+    latestHeadingReading.heading,
+    activeDeclinationDegrees
+  );
+  view.renderDirectionHeading(activeDirectionSession);
+}
+
+async function startDirection() {
+  const place = selectedPlace();
+  if (!place) {
+    view.setStatus('方角を見る場所を選んでください。', 'error');
+    return;
+  }
+
+  stopDirectionRuntime();
+  const runId = directionRunId;
+  view.showDirectionLoading(place);
+
+  let headingPermissionError = null;
+  const headingPermissionPromise = isHeadingSupported()
+    ? requestHeadingPermission()
+        .then(() => true)
+        .catch((error) => {
+          headingPermissionError = error;
+          return false;
+        })
+    : Promise.resolve(false);
+
+  try {
+    const currentPosition = await getCurrentLocation();
+    if (runId !== directionRunId) return;
+
+    activeDirectionSession = createDirectionSession({
+      selectedPlace: place,
+      currentPosition,
+    });
+    view.renderDirectionSession(activeDirectionSession);
+
+    const headingAllowed = await headingPermissionPromise;
+    if (runId !== directionRunId) return;
+
+    if (!headingAllowed) {
+      view.setCompassUnavailable(
+        headingPermissionError?.message ??
+          'この端末ではコンパスを利用できません。方位角と距離は確認できます。'
+      );
+      return;
+    }
+
+    try {
+      const declination = await getMagneticDeclination(
+        currentPosition.latitude,
+        currentPosition.longitude,
+        new Date()
+      );
+      if (runId !== directionRunId) return;
+      activeDeclinationDegrees = declination.degrees;
+    } catch (error) {
+      view.setCompassUnavailable(
+        error?.message ??
+          '磁気偏角を確認できないため、コンパス追従を利用できません。'
+      );
+      return;
+    }
+
+    try {
+      stopHeadingUpdates = startHeadingUpdates(
+        (reading) => {
+          if (runId !== directionRunId) return;
+          latestHeadingReading = reading;
+          applyLatestHeading();
+        },
+        (error) => {
+          if (runId !== directionRunId) return;
+          view.setCompassUnavailable(error.message);
+        }
+      );
+    } catch (error) {
+      view.setCompassUnavailable(
+        error?.message ??
+          'コンパスを開始できません。方位角と距離は確認できます。'
+      );
+    }
+  } catch (error) {
+    if (runId !== directionRunId) return;
+
+    if (
+      error instanceof GeolocationError ||
+      error instanceof DirectionSessionError
+    ) {
+      view.showDirectionError(error.message);
+      return;
+    }
+
+    view.showDirectionError('現在地から目的地の方角を確認できませんでした。');
+  }
+}
 
 function clearShareFragment() {
   history.replaceState(null, '', `${location.pathname}${location.search}`);
@@ -32,6 +175,8 @@ function loadPlaces() {
     view.renderPlaces(places, {
       selectedId,
       onSelect: (id) => {
+        stopDirectionRuntime();
+        view.hideDirection();
         selectedId = id;
         const selected = repository.list().find((place) => place.id === id) ?? null;
         view.showSelected(selected);
@@ -46,6 +191,8 @@ function loadPlaces() {
         try {
           repository.remove(id);
           if (selectedId === id) {
+            stopDirectionRuntime();
+            view.hideDirection();
             selectedId = null;
             view.showSelected(null);
           }
@@ -68,7 +215,10 @@ function handleError(error) {
   if (
     error instanceof PlaceRepositoryError ||
     error instanceof SharedPlaceError ||
-    error instanceof LocationResolverClientError
+    error instanceof LocationResolverClientError ||
+    error instanceof GeolocationError ||
+    error instanceof HeadingError ||
+    error instanceof DirectionSessionError
   ) {
     view.setStatus(error.message, 'error');
     return;
@@ -135,6 +285,13 @@ try {
   handleError(error);
 }
 
+view.onStartDirection(startDirection);
+
+view.onCloseDirection(() => {
+  stopDirectionRuntime();
+  view.hideDirection();
+});
+
 view.onSave((name) => {
   if (!repository || !candidate) {
     view.setStatus('保存する場所がありません。Google Mapsから共有してください。', 'error');
@@ -152,6 +309,8 @@ view.onSave((name) => {
     handleError(error);
   }
 });
+
+window.addEventListener('pagehide', stopDirectionRuntime);
 
 await registerServiceWorker();
 readShareFragment();

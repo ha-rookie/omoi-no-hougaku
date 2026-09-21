@@ -1,0 +1,89 @@
+name: Preview Direction core compass
+
+on:
+  push:
+    branches:
+      - feature/direction-core-compass
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-direction-core-compass
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate Direction source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s public/index.html
+          test -s public/app.js
+          test -s public/styles.css
+          test -s public/data/wmm-2025.json
+          node --check public/app.js
+          node --check public/js/app/direction-session.js
+          node --check public/js/core/bearing-engine.js
+          node --check public/js/core/heading-normalizer.js
+          node --check public/js/core/alignment-engine.js
+          node --check public/js/infrastructure/location-provider.js
+          node --check public/js/infrastructure/heading-provider.js
+          node --check public/js/infrastructure/declination-provider.js
+          node --check public/js/vendor/geomagnetism-wmm2025.js
+
+      - name: Deploy Direction Preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=feature-direction-core-compass --commit-dirty=true
+
+      - name: Preview smoke test
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+
+          ready=0
+          for attempt in $(seq 1 20); do
+            echo "Direction Preview readiness attempt $attempt/20: $DEPLOYMENT_URL"
+
+            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/app.js" -o /tmp/app.js               && curl -fsS "$DEPLOYMENT_URL/styles.css" -o /tmp/styles.css               && curl -fsS "$DEPLOYMENT_URL/data/wmm-2025.json" -o /tmp/wmm.json; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo 'Direction Preview did not become ready within 40 seconds.'
+            exit 1
+          fi
+
+          grep -Fq 'id="start-direction"' /tmp/index.html
+          grep -Fq 'id="direction-compass"' /tmp/index.html
+          grep -Fq 'getCurrentLocation' /tmp/app.js
+          grep -Fq 'requestHeadingPermission' /tmp/app.js
+          grep -Fq 'Direction / target-up compass' /tmp/styles.css
+          node -e "const fs=require('fs'); const w=JSON.parse(fs.readFileSync('/tmp/wmm.json','utf8')); if(w.name !== 'WMM-2025') process.exit(1)"
+
+      - name: Report preview URL
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+          echo "Direction Preview URL: $DEPLOYMENT_URL"

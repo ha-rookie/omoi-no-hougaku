@@ -82,18 +82,19 @@ jobs:
           node tests/request-security.test.mjs
           node tests/rate-limit-service.test.mjs
 
-      - name: Verify Pages rate limiter service binding
+      - name: Configure and verify Pages rate limiter service binding
         env:
           CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsS             "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/omoi-no-hougaku"             -H "Authorization: Bearer $CF_API_TOKEN"             -H 'Content-Type: application/json'             -o /tmp/pages-project.json
-          jq -e '
-            .success == true and
-            .result.deployment_configs.production.services.RATE_LIMITER_SERVICE.service == "omoi-no-hougaku-rate-limiter"
-          ' /tmp/pages-project.json >/dev/null
+          API_URL="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/omoi-no-hougaku"
+          curl -fsS "$API_URL" -H "Authorization: Bearer $CF_API_TOKEN" -H 'Content-Type: application/json' -o /tmp/pages-project-before.json
+          jq -e '.success == true' /tmp/pages-project-before.json >/dev/null
+          jq '{deployment_configs:{production:{services:((.result.deployment_configs.production.services // {}) + {RATE_LIMITER_SERVICE:{service:"omoi-no-hougaku-rate-limiter"}})}}}' /tmp/pages-project-before.json > /tmp/pages-project-patch.json
+          curl -fsS -X PATCH "$API_URL" -H "Authorization: Bearer $CF_API_TOKEN" -H 'Content-Type: application/json' --data-binary @/tmp/pages-project-patch.json -o /tmp/pages-project-after.json
+          jq -e '.success == true and .result.deployment_configs.production.services.RATE_LIMITER_SERVICE.service == "omoi-no-hougaku-rate-limiter"' /tmp/pages-project-after.json >/dev/null
 
       - name: Write Pages build marker
         shell: bash

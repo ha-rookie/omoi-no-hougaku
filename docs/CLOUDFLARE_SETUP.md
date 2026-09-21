@@ -5,6 +5,7 @@
 ### 現在のPoC
 
 - [x] GitHub Repository接続権限
+- [x] GitHub Repository visibility: Public（2026-09-21）
 - [x] Production Branch: `main`
 - [x] Build Command: なし
 - [x] Output Directory: `poc/google-maps-share-link`
@@ -14,6 +15,7 @@
 - [x] Production URL: `https://omoi-no-hougaku.pages.dev/`
 - [x] API POSTはOrigin必須 + same-origin検証
 - [x] Fetch Metadataが存在する場合はsame-origin検証
+- [x] Public Repository化後、PR用GitHub-hosted runnerでProject validation / PoC testsが成功
 
 ### MVP本番移行時
 

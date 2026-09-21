@@ -45,7 +45,61 @@
     <section id="selected-panel" class="card" hidden aria-labelledby="selected-heading">
       <h2 id="selected-heading">いま選んでいる場所</h2>
       <p><strong id="selected-name"></strong></p>
-      <p class="muted">方角表示は次の実装で追加します。この段階では地点の登録・選択・削除だけを確認します。</p>
+      <p class="muted">現在地から、この場所の方角と距離を確認できます。</p>
+      <div class="actions">
+        <button id="start-direction" class="primary" type="button">この場所の方角を見る</button>
+      </div>
+    </section>
+
+    <section id="direction-panel" class="card direction-panel" hidden aria-labelledby="direction-heading">
+      <div class="direction-header">
+        <div>
+          <p class="direction-eyebrow">いま向きたい場所</p>
+          <h2 id="direction-heading">方角を確認</h2>
+          <p id="direction-target-name" class="direction-target-name"></p>
+        </div>
+        <button id="close-direction" type="button">閉じる</button>
+      </div>
+
+      <p id="direction-status" class="status" role="status" aria-live="polite">現在地を確認しています…</p>
+
+      <div id="direction-content" hidden>
+        <p id="target-bearing-primary" class="target-bearing-primary">目標方位 —</p>
+
+        <div id="direction-compass" class="direction-compass" aria-label="目的地を上に固定したコンパス">
+          <div id="compass-rotor" class="compass-rotor" aria-hidden="true">
+            <span class="compass-cardinal compass-cardinal--north"><span>北</span></span>
+            <span class="compass-cardinal compass-cardinal--east"><span>東</span></span>
+            <span class="compass-cardinal compass-cardinal--south"><span>南</span></span>
+            <span class="compass-cardinal compass-cardinal--west"><span>西</span></span>
+          </div>
+          <span class="target-fixed-mark" aria-hidden="true">
+            <span class="target-fixed-dot"></span>
+            <span class="target-fixed-label">目的地</span>
+          </span>
+          <span class="compass-center" aria-hidden="true"></span>
+          <span id="current-heading-needle" class="current-heading-needle" aria-hidden="true"></span>
+        </div>
+
+        <p id="turn-instruction" class="turn-instruction">コンパスを確認しています…</p>
+
+        <dl class="direction-metrics">
+          <div>
+            <dt>目標方位</dt>
+            <dd id="target-bearing-label">—</dd>
+          </div>
+          <div>
+            <dt>現在の向き</dt>
+            <dd id="current-heading-label">—</dd>
+          </div>
+          <div>
+            <dt>距離</dt>
+            <dd id="distance-label">—</dd>
+          </div>
+        </dl>
+
+        <p id="compass-fallback-note" class="muted" hidden></p>
+      </div>
     </section>
 
     <section class="card" aria-labelledby="saved-heading">

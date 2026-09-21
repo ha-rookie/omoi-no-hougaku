@@ -111,8 +111,11 @@ function worldViewBox() {
   return { x: 0, y: 28, width: 1440, height: 640 };
 }
 
-function appendMarker(group, point, label, kind) {
+function appendMarker(group, point, label, kind, scale) {
   const p = project(point);
+  const markerSize = Math.max(scale * 0.012, 0.12);
+  const labelOffset = markerSize * 1.8;
+  const labelSize = Math.max(scale * 0.025, 0.24);
   const marker = svgElement('g', {
     class: `map-marker map-marker--${kind}`,
     transform: `translate(${p.x} ${p.y})`,
@@ -122,22 +125,30 @@ function appendMarker(group, point, label, kind) {
     svgElement(kind === 'current' ? 'circle' : 'rect', {
       class: 'map-marker-shape',
       ...(kind === 'current'
-        ? { cx: 0, cy: 0, r: 8 }
-        : { x: -7, y: -7, width: 14, height: 14, rx: 2, transform: 'rotate(45)' }),
+        ? { cx: 0, cy: 0, r: markerSize }
+        : {
+            x: -markerSize * 0.88,
+            y: -markerSize * 0.88,
+            width: markerSize * 1.76,
+            height: markerSize * 1.76,
+            rx: markerSize * 0.18,
+            transform: 'rotate(45)',
+          }),
     })
   );
 
   const text = svgElement('text', {
-    x: 13,
-    y: -11,
+    x: labelOffset,
+    y: -labelOffset * 0.7,
     class: 'map-marker-label',
+    'font-size': labelSize,
   });
   text.textContent = label;
   marker.append(text);
   group.append(marker);
 }
 
-function appendRelationshipLines(group, current, target) {
+function appendRelationshipLines(group, current, target, scale) {
   const points = greatCirclePoints(current, target, 64);
   const segments = splitAntimeridian(points);
 
@@ -153,6 +164,8 @@ function appendRelationshipLines(group, current, target) {
       svgElement('path', {
         d,
         class: 'map-relationship-line',
+        'stroke-width': Math.max(scale * 0.003, 0.03),
+        'vector-effect': 'non-scaling-stroke',
       })
     );
   }
@@ -182,6 +195,7 @@ export async function renderMapOverview({
   const mode = selectMapMode(current, target, japanData);
   const geography = mode === 'japan' ? japanData : await loadWorldMapData();
   const box = mode === 'japan' ? japanViewBox(current, target) : worldViewBox();
+  const scale = Math.max(box.width, box.height);
 
   if (!shouldCommit()) {
     return {
@@ -212,13 +226,21 @@ export async function renderMapOverview({
       d: buildGeographyPath(geography),
       class: `map-geography map-geography--${mode}`,
       'fill-rule': 'evenodd',
+      'stroke-width': Math.max(scale * 0.0008, 0.01),
+      'vector-effect': 'non-scaling-stroke',
     })
   );
 
   const relationshipGroup = svgElement('g', { class: 'map-relationship' });
-  appendRelationshipLines(relationshipGroup, current, target);
-  appendMarker(relationshipGroup, current, '現在地', 'current');
-  appendMarker(relationshipGroup, target, targetName || '目的地', 'target');
+  appendRelationshipLines(relationshipGroup, current, target, scale);
+  appendMarker(relationshipGroup, current, '現在地', 'current', scale);
+  appendMarker(
+    relationshipGroup,
+    target,
+    targetName || '目的地',
+    'target',
+    scale
+  );
   svg.append(relationshipGroup);
 
   container.append(svg);

@@ -16,7 +16,7 @@ const nagoya = { latitude: 35.170915, longitude: 136.881537 };
 const tokyo = { latitude: 35.681236, longitude: 139.767125 };
 
 const bearing = initialBearingDegrees(nagoya, tokyo);
-assert.ok(bearing > 65 && bearing < 75, `unexpected Nagoya→Tokyo bearing: ${bearing}`);
+assert.ok(Math.abs(bearing - 76.921) < 0.01, `unexpected Nagoya→Tokyo bearing: ${bearing}`);
 
 const distance = greatCircleDistanceMeters(nagoya, tokyo);
 assert.ok(distance > 250000 && distance < 280000, `unexpected Nagoya→Tokyo distance: ${distance}`);

@@ -50,6 +50,7 @@ export class AppView {
     this.mapOverview = documentRef.querySelector('#map-overview');
     this.mapModeLabel = documentRef.querySelector('#map-mode-label');
     this.mapSummary = documentRef.querySelector('#map-summary');
+    this.mapAttribution = documentRef.querySelector('#map-attribution');
 
     this.nameInput.maxLength = MAX_PLACE_NAME_LENGTH;
   }
@@ -217,6 +218,8 @@ export class AppView {
   resetMapOverview() {
     this.mapModeLabel.textContent = '地図';
     this.mapSummary.textContent = '';
+    this.mapAttribution.hidden = true;
+    this.mapAttribution.textContent = '';
     this.mapOverview.replaceChildren();
     const loading = this.document.createElement('p');
     loading.className = 'muted';
@@ -227,6 +230,8 @@ export class AppView {
   showMapLoading() {
     this.mapModeLabel.textContent = '地図';
     this.mapSummary.textContent = '';
+    this.mapAttribution.hidden = true;
+    this.mapAttribution.textContent = '';
     this.mapOverview.replaceChildren();
     const loading = this.document.createElement('p');
     loading.className = 'muted';
@@ -239,6 +244,11 @@ export class AppView {
       result.mode === 'japan' ? '日本地図' : '世界地図';
     this.mapSummary.textContent =
       `${formatDistance(result.distanceMeters)} ・ ${Math.round(result.targetBearing)}° ${result.targetDirectionLabel}`;
+    this.mapAttribution.hidden = false;
+    this.mapAttribution.textContent =
+      result.mode === 'japan'
+        ? '地図データ：「国土数値情報（行政区域データ）」（国土交通省）を加工'
+        : '地図データ：Natural Earth / world-atlas';
   }
 
   showMapError(message) {

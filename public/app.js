@@ -27,6 +27,7 @@ import {
   startHeadingUpdates,
 } from './js/infrastructure/heading-provider.js';
 import { getMagneticDeclination } from './js/infrastructure/declination-provider.js';
+import { renderMapOverview } from './js/ui/map-overview.js';
 import { AppView } from './js/ui/app-view.js';
 
 const view = new AppView();
@@ -38,9 +39,13 @@ let activeDeclinationDegrees = null;
 let latestHeadingReading = null;
 let stopHeadingUpdates = null;
 let directionRunId = 0;
+let directionViewMode = 'compass';
+let mapRenderId = 0;
 
 function stopDirectionRuntime() {
   directionRunId += 1;
+  mapRenderId += 1;
+  directionViewMode = 'compass';
   stopHeadingUpdates?.();
   stopHeadingUpdates = null;
   activeDirectionSession = null;
@@ -158,6 +163,62 @@ async function startDirection() {
     }
 
     view.showDirectionError('現在地から目的地の方角を確認できませんでした。');
+  }
+}
+
+async function changeDirectionMode(mode) {
+  directionViewMode = mode === 'map' ? 'map' : 'compass';
+  view.setDirectionMode(directionViewMode);
+
+  if (directionViewMode !== 'map') {
+    mapRenderId += 1;
+    return;
+  }
+
+  if (!activeDirectionSession) {
+    view.showMapError('現在地と目的地を確認してから地図を表示します。');
+    return;
+  }
+
+  const renderId = ++mapRenderId;
+  const runId = directionRunId;
+  const session = activeDirectionSession;
+
+  view.showMapLoading();
+
+  try {
+    const result = await renderMapOverview({
+      container: view.getMapOverviewContainer(),
+      current: session.currentPosition,
+      target: session.targetPosition,
+      targetName: session.selectedPlaceName,
+      distanceMeters: session.distanceMeters,
+      targetBearing: session.targetBearing,
+      targetDirectionLabel: session.targetDirectionLabel,
+      shouldCommit: () =>
+        renderId === mapRenderId &&
+        runId === directionRunId &&
+        directionViewMode === 'map',
+    });
+
+    if (
+      result?.committed &&
+      renderId === mapRenderId &&
+      runId === directionRunId &&
+      directionViewMode === 'map'
+    ) {
+      view.showMapReady(result);
+    }
+  } catch {
+    if (
+      renderId === mapRenderId &&
+      runId === directionRunId &&
+      directionViewMode === 'map'
+    ) {
+      view.showMapError(
+        '地図を表示できませんでした。コンパスと方位・距離は引き続き利用できます。'
+      );
+    }
   }
 }
 
@@ -286,6 +347,7 @@ try {
 }
 
 view.onStartDirection(startDirection);
+view.onDirectionModeChange(changeDirectionMode);
 
 view.onCloseDirection(() => {
   stopDirectionRuntime();

@@ -47,6 +47,7 @@ jobs:
             docs/GIT_WORKFLOW.md
             docs/ASSET_WORKFLOW.md
             docs/CLOUDFLARE_SETUP.md
+            docs/PUBLIC_RELEASE_CHECKLIST.md
             docs/TROUBLESHOOTING.md
             docs/RELEASE_CHECKLIST.md
             .github/ISSUE_TEMPLATE/feature.yml
@@ -76,6 +77,15 @@ jobs:
           grep -q "Requirements Traceability" docs/05_DESIGN_MANAGEMENT.md
           grep -q "Design Previewは表示面" docs/design/README.md
           grep -q "Superseded" docs/adr/README.md
+
+      - name: Confirm public release security rules exist
+        shell: bash
+        run: |
+          set -eu
+          grep -q "Origin必須" docs/PUBLIC_RELEASE_CHECKLIST.md
+          grep -q "rate limiting" docs/PUBLIC_RELEASE_CHECKLIST.md
+          grep -q "Public化後" docs/PUBLIC_RELEASE_CHECKLIST.md
+          grep -q "PUBLIC_RELEASE_CHECKLIST.md" docs/CLOUDFLARE_SETUP.md
 
       - name: Confirm Replacement PR handoff fields exist
         shell: bash

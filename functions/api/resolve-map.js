@@ -2,6 +2,11 @@ import {
   MapResolveError,
   resolveShortGoogleMapsUrl,
 } from '../_shared/google-maps-resolver.js';
+import {
+  API_RESPONSE_HEADERS,
+  RequestSecurityError,
+  assertSameOriginRequest,
+} from '../_shared/request-security.js';
 
 const MAX_BODY_BYTES = 8192;
 const MAX_URL_LENGTH = 2048;
@@ -9,17 +14,12 @@ const MAX_URL_LENGTH = 2048;
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store',
-      'x-content-type-options': 'nosniff',
-      'referrer-policy': 'no-referrer',
-    },
+    headers: API_RESPONSE_HEADERS,
   });
 }
 
 function errorResponse(error) {
-  if (error instanceof MapResolveError) {
+  if (error instanceof MapResolveError || error instanceof RequestSecurityError) {
     return jsonResponse(
       {
         ok: false,
@@ -45,25 +45,11 @@ function errorResponse(error) {
   );
 }
 
-function assertSameOriginWhenPresent(request) {
-  const origin = request.headers.get('origin');
-  if (!origin) return;
-
-  const requestOrigin = new URL(request.url).origin;
-  if (origin !== requestOrigin) {
-    throw new MapResolveError(
-      'CROSS_ORIGIN_NOT_ALLOWED',
-      'このAPIは同一サイトからのみ利用できます',
-      403
-    );
-  }
-}
-
 export async function onRequestPost(context) {
   const { request } = context;
 
   try {
-    assertSameOriginWhenPresent(request);
+    assertSameOriginRequest(request);
 
     const contentLength = Number(request.headers.get('content-length') ?? 0);
     if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {

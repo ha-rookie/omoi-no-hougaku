@@ -3,37 +3,23 @@ import {
   normalizeSupportedMapsUrl,
   resolveMapsUrlsWithGoogle,
 } from '../_shared/maps-grounding-resolver.js';
+import {
+  API_RESPONSE_HEADERS,
+  RequestSecurityError,
+  assertSameOriginRequest,
+} from '../_shared/request-security.js';
 
 const MAX_BODY_BYTES = 8192;
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': 'no-store',
-      'x-content-type-options': 'nosniff',
-      'referrer-policy': 'no-referrer',
-    },
+    headers: API_RESPONSE_HEADERS,
   });
 }
 
-function assertSameOriginWhenPresent(request) {
-  const origin = request.headers.get('origin');
-  if (!origin) return;
-
-  const requestOrigin = new URL(request.url).origin;
-  if (origin !== requestOrigin) {
-    throw new MapsGroundingError(
-      'CROSS_ORIGIN_NOT_ALLOWED',
-      'このAPIは同一サイトからのみ利用できます',
-      403
-    );
-  }
-}
-
 function normalizeError(error) {
-  if (error instanceof MapsGroundingError) {
+  if (error instanceof MapsGroundingError || error instanceof RequestSecurityError) {
     return jsonResponse(
       {
         ok: false,
@@ -63,7 +49,7 @@ export async function onRequestPost(context) {
   const { request, env } = context;
 
   try {
-    assertSameOriginWhenPresent(request);
+    assertSameOriginRequest(request);
 
     const contentLength = Number(request.headers.get('content-length') ?? 0);
     if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {

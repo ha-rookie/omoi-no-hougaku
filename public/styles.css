@@ -549,3 +549,10 @@ input[type="text"] {
     min-height: 240px;
   }
 }
+
+
+.map-attribution {
+  margin: 6px 2px 0;
+  font-size: .68rem;
+  line-height: 1.45;
+}

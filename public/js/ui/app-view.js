@@ -26,9 +26,6 @@ export class AppView {
     this.savedCount = documentRef.querySelector('#saved-count');
     this.placeList = documentRef.querySelector('#place-list');
     this.emptyState = documentRef.querySelector('#empty-state');
-    this.selectedPanel = documentRef.querySelector('#selected-panel');
-    this.selectedName = documentRef.querySelector('#selected-name');
-    this.startDirectionButton = documentRef.querySelector('#start-direction');
     this.directionPanel = documentRef.querySelector('#direction-panel');
     this.directionTargetName = documentRef.querySelector('#direction-target-name');
     this.directionStatus = documentRef.querySelector('#direction-status');
@@ -82,10 +79,6 @@ export class AppView {
     });
   }
 
-  onStartDirection(handler) {
-    this.startDirectionButton.addEventListener('click', handler);
-  }
-
   onCloseDirection(handler) {
     this.closeDirectionButton.addEventListener('click', handler);
   }
@@ -118,7 +111,7 @@ export class AppView {
 
       const selectButton = this.document.createElement('button');
       selectButton.type = 'button';
-      selectButton.textContent = place.id === selectedId ? '選択中' : 'この場所を選ぶ';
+      selectButton.textContent = place.id === selectedId ? 'もう一度見る' : 'この場所を見る';
       selectButton.addEventListener('click', () => onSelect?.(place.id));
 
       const deleteButton = this.document.createElement('button');
@@ -133,17 +126,6 @@ export class AppView {
     }
   }
 
-  showSelected(place) {
-    if (!place) {
-      this.selectedPanel.hidden = true;
-      this.selectedName.textContent = '';
-      return;
-    }
-
-    this.selectedPanel.hidden = false;
-    this.selectedName.textContent = place.name;
-  }
-
   showDirectionLoading(place) {
     this.directionPanel.hidden = false;
     this.directionTargetName.textContent = place?.name ?? '目的地';
@@ -151,7 +133,6 @@ export class AppView {
     this.directionStatus.className = 'status';
     this.directionContent.hidden = true;
     this.compassFallbackNote.hidden = true;
-    this.startDirectionButton.disabled = true;
     this.directionPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -160,7 +141,6 @@ export class AppView {
     this.directionStatus.textContent = message;
     this.directionStatus.className = 'status error';
     this.directionContent.hidden = true;
-    this.startDirectionButton.disabled = false;
   }
 
   renderDirectionSession(session) {
@@ -182,7 +162,6 @@ export class AppView {
     this.directionCompass.style.setProperty('--compass-counter', `${bearing}deg`);
     this.currentHeadingNeedle.style.transform =
       'translate(-50%, -100%) rotate(0deg)';
-    this.startDirectionButton.disabled = false;
   }
 
   renderDirectionHeading(session) {
@@ -269,7 +248,6 @@ export class AppView {
     this.directionCompass.dataset.aligned = 'false';
     this.setDirectionMode('compass');
     this.resetMapOverview();
-    this.startDirectionButton.disabled = false;
   }
 }
 

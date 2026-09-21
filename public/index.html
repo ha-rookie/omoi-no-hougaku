@@ -17,38 +17,10 @@
       <p class="lead">大切な場所を、たくさん集めなくていい。いま向きたい場所だけを、端末に残します。</p>
     </header>
 
-    <section class="card" aria-labelledby="add-heading">
-      <h2 id="add-heading">場所を追加</h2>
-      <p>Google Mapsで場所を開き、「共有」から「想いの方角」を選んでください。</p>
-      <div class="actions">
-        <a class="button" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google Mapsを開く</a>
-      </div>
-      <p class="muted">任意ピンの緯度経度は端末内で確認します。施設名などの共有は必要なときだけGoogle公式APIで確認します。</p>
-    </section>
-
-    <div id="status" class="status" role="status" aria-live="polite">Google Mapsから場所を共有できます。</div>
-
-    <section id="candidate-panel" class="card" hidden aria-labelledby="candidate-heading">
-      <h2 id="candidate-heading">この場所を保存</h2>
-      <p id="candidate-summary" class="notice"></p>
-      <form id="save-place-form">
-        <div class="form-row">
-          <label for="place-name">自分だけが分かる名前</label>
-          <input id="place-name" name="place-name" type="text" autocomplete="off" required maxlength="40" placeholder="例：故郷、あの海、祖父母の家">
-        </div>
-        <div class="actions">
-          <button class="primary" type="submit">端末に保存</button>
-        </div>
-      </form>
-    </section>
-
-    <section id="selected-panel" class="card" hidden aria-labelledby="selected-heading">
-      <h2 id="selected-heading">いま選んでいる場所</h2>
-      <p><strong id="selected-name"></strong></p>
-      <p class="muted">現在地から、この場所の方角と距離を確認できます。</p>
-      <div class="actions">
-        <button id="start-direction" class="primary" type="button">この場所の方角を見る</button>
-      </div>
+    <section class="card" aria-labelledby="saved-heading">
+      <h2 id="saved-heading">保存した場所 <span id="saved-count" class="counter">0 / 5</span></h2>
+      <p id="empty-state" class="muted">まだ保存した場所はありません。</p>
+      <ul id="place-list" class="place-list"></ul>
     </section>
 
     <section id="direction-panel" class="card direction-panel" hidden aria-labelledby="direction-heading">
@@ -121,11 +93,32 @@
       </div>
     </section>
 
-    <section class="card" aria-labelledby="saved-heading">
-      <h2 id="saved-heading">保存した場所 <span id="saved-count" class="counter">0 / 5</span></h2>
-      <p id="empty-state" class="muted">まだ保存した場所はありません。</p>
-      <ul id="place-list" class="place-list"></ul>
+
+    <section class="card" aria-labelledby="add-heading">
+      <h2 id="add-heading">場所を追加</h2>
+      <p>新しい場所を追加するときだけGoogle Mapsを開きます。</p>
+      <div class="actions">
+        <a class="button" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google Mapsを開く</a>
+      </div>
+      <p class="muted">Google Mapsで場所を選び、「共有」から「想いの方角」を選んでください。</p>
     </section>
+
+    <div id="status" class="status" role="status" aria-live="polite">登録済みの場所を選ぶか、新しい場所を追加できます。</div>
+
+    <section id="candidate-panel" class="card" hidden aria-labelledby="candidate-heading">
+      <h2 id="candidate-heading">この場所に名前をつける</h2>
+      <p id="candidate-summary" class="notice"></p>
+      <form id="save-place-form">
+        <div class="form-row">
+          <label for="place-name">自分だけが分かる名前</label>
+          <input id="place-name" name="place-name" type="text" autocomplete="off" required maxlength="40" placeholder="例：故郷、あの海、祖父母の家">
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit">この名前で保存</button>
+        </div>
+      </form>
+    </section>
+
 
     <section class="card">
       <h2>保存について</h2>

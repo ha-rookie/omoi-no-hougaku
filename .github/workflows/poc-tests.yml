@@ -34,9 +34,11 @@ jobs:
           node --check functions/api/resolve-location.js
           node --check functions/_shared/places-details.js
           node --check functions/_shared/request-security.js
+          node --check functions/_shared/rate-limit-service.js
           node --check workers/api-rate-limiter/src/index.js
           node --check tests/request-security.test.mjs
           node --check tests/rate-limiter-worker.test.mjs
+          node --check tests/rate-limit-service.test.mjs
           grep -Fq "navigator.serviceWorker.register('/sw-share-target.js'" poc/google-maps-share-link/share-location-poc.html
           grep -Fq "await navigator.serviceWorker.ready" poc/google-maps-share-link/share-location-poc.html
       - name: Run resolver tests
@@ -48,3 +50,4 @@ jobs:
           node tests/share-location-resolver.test.mjs
           node tests/request-security.test.mjs
           node tests/rate-limiter-worker.test.mjs
+          node tests/rate-limit-service.test.mjs

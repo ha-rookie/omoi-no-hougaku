@@ -26,8 +26,8 @@
 - [ ] Google API keyのAPI制限がMaps Grounding Lite + Places API (New)に限定されていることを確認
 - [ ] Google Cloudの利用量・課金状態・予算アラートを確認
 - [x] API abuse対策は専用Cloudflare Worker + Rate Limiting binding方式に決定（ADR-0005）
-- [ ] Rate Limiter WorkerをProductionへDeploy
-- [ ] Pages projectへRate Limiter WorkerのService bindingを追加
+- [x] Rate Limiter WorkerをProductionへDeploy（Worker version `0106d89a-c32e-48e0-a298-394b2730b4cf`）
+- [ ] GitHub ActionsからPages productionへService binding `RATE_LIMITER_SERVICE` を自動設定
 - [ ] SEO/robots/Preview noindexを本番方針に合わせる
 
 ## 2. Deploy方式
@@ -45,7 +45,7 @@ GitHub main
 
 Workflowは `.github/workflows/deploy-pages.yml` を正とする。
 
-Rate Limiter Workerは `.github/workflows/deploy-rate-limiter.yml` で別Deployする。Workerを先にDeployしてからPages側Service bindingを設定する。
+Rate Limiter Workerは `.github/workflows/deploy-rate-limiter.yml` で別Deployする。Workerを先にDeployし、その後 `.github/workflows/deploy-pages.yml` がCloudflare Pages Project APIでproduction Service bindingを追加・確認してからPagesをDeployする。Cloudflare Dashboardでの手動binding設定は不要とする。
 
 PoC完了後のMVP本体ではDeploy directoryを`public/`へ変更する。変更は本番Implementation Issue内でWorkflow、smoke test、rollback手順を同時更新する。
 
@@ -104,7 +104,9 @@ MVP本番で必要なEndpoint:
 - `preview_urls: false`
 - 初期値: 30 requests / 60 seconds
 - key: `resolve-location`
-- Pages側binding名: `RATE_LIMITER_SERVICE` を予定
+- Pages側binding名: `RATE_LIMITER_SERVICE`
+- Production bindingはGitHub ActionsがPages Project APIで設定・検証する
+- 既存の他Service bindingがある場合はGETした設定へ追記して保持する
 
 ## 5. Environment Separation
 

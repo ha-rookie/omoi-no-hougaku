@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { selectHeadingForGuidance } from '../../public/js/infrastructure/heading-provider.js';
+import { selectHeadingForGuidance } from '../public/js/infrastructure/heading-provider.js';
 
 test('absolute alpha remains the guidance heading even when another tilted-device diagnostic differs', () => {
   const selected = selectHeadingForGuidance({

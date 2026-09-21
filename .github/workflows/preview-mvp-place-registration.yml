@@ -41,6 +41,38 @@ jobs:
           wranglerVersion: latest
           command: pages deploy public --project-name=omoi-no-hougaku --branch=feature-mvp-place-registration --commit-dirty=true
 
+      - name: Preview smoke test
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+
+          ready=0
+          for attempt in $(seq 1 20); do
+            echo "Preview readiness attempt $attempt/20: $DEPLOYMENT_URL"
+
+            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/manifest.webmanifest" -o /tmp/manifest.webmanifest               && curl -fsS "$DEPLOYMENT_URL/app.js" -o /tmp/app.js               && curl -fsS "$DEPLOYMENT_URL/sw.js" -o /tmp/sw.js; then
+              ready=1
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo 'Preview did not become ready within 40 seconds.'
+            exit 1
+          fi
+
+          grep -Fq '<title>想いの方角</title>' /tmp/index.html
+          grep -Fq 'Google Mapsで場所を開き' /tmp/index.html
+          grep -Fq '"action": "/share-target"' /tmp/manifest.webmanifest
+          grep -Fq '"method": "POST"' /tmp/manifest.webmanifest
+          grep -Fq "navigator.serviceWorker.register('/sw.js'" /tmp/app.js
+          grep -Fq "requestUrl.pathname === '/share-target'" /tmp/sw.js
+
       - name: Report preview URL
         shell: bash
         env:

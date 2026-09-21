@@ -12,6 +12,10 @@ import {
   RequestSecurityError,
   assertSameOriginRequest,
 } from '../_shared/request-security.js';
+import {
+  RateLimitServiceError,
+  assertGoogleApiRateLimit,
+} from '../_shared/rate-limit-service.js';
 
 const MAX_BODY_BYTES = 8192;
 
@@ -26,7 +30,8 @@ function normalizeError(error) {
   if (
     error instanceof MapsGroundingError ||
     error instanceof PlacesDetailsError ||
-    error instanceof RequestSecurityError
+    error instanceof RequestSecurityError ||
+    error instanceof RateLimitServiceError
   ) {
     return jsonResponse(
       {
@@ -77,8 +82,9 @@ export async function onRequestPost(context) {
     }
 
     const url = normalizeSupportedMapsUrl(body?.url);
-    const apiKey = env?.MAPS_GROUNDING_API_KEY;
+    await assertGoogleApiRateLimit(env);
 
+    const apiKey = env?.MAPS_GROUNDING_API_KEY;
     const resolved = await resolveMapsUrlsWithGoogle([url], { apiKey });
     const entity = resolved.entities[0] ?? {};
     const failedRequest = resolved.failedRequests?.['0'] ?? null;
@@ -97,14 +103,14 @@ export async function onRequestPost(context) {
       );
     }
 
-    const location = await getPlaceLocation(entity.place, { apiKey });
+    const placeLocation = await getPlaceLocation(entity.place, { apiKey });
 
     return jsonResponse({
       ok: true,
       place: entity.place,
-      placeId: location.placeId,
-      latitude: location.latitude,
-      longitude: location.longitude,
+      placeId: placeLocation.placeId,
+      latitude: placeLocation.latitude,
+      longitude: placeLocation.longitude,
     });
   } catch (error) {
     return normalizeError(error);

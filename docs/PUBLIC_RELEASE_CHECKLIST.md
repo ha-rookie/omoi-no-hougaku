@@ -44,7 +44,7 @@ GitHub RepositoryをPrivateからPublicへ変更する前後の確認手順。
 - [x] Maps Grounding Liteのquotaを確認（Resolve Maps URLs: 600 requests/minute）
 - [x] Google Cloud側quotaを現状のConsoleでは引き下げられないことを確認
 - [x] budget alertは今回は採用しない（即時対応できない通知よりCloudflare側自動遮断を優先）
-- [ ] 異常利用時のkey rotation手順を確認
+- [x] 異常利用時のkey rotation手順を `API_KEY_ROTATION_RUNBOOK.md` に整理
 
 Google側のquotaを直接引き下げる代わりに、Cloudflareで30 requests / 60 secondsのRate LimitをGoogle API前段へ実装する。
 

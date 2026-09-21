@@ -8,6 +8,10 @@ import {
   RequestSecurityError,
   assertSameOriginRequest,
 } from '../_shared/request-security.js';
+import {
+  RateLimitServiceError,
+  assertGoogleApiRateLimit,
+} from '../_shared/rate-limit-service.js';
 
 const MAX_BODY_BYTES = 8192;
 
@@ -19,7 +23,11 @@ function jsonResponse(body, status = 200) {
 }
 
 function normalizeError(error) {
-  if (error instanceof MapsGroundingError || error instanceof RequestSecurityError) {
+  if (
+    error instanceof MapsGroundingError ||
+    error instanceof RequestSecurityError ||
+    error instanceof RateLimitServiceError
+  ) {
     return jsonResponse(
       {
         ok: false,
@@ -69,6 +77,8 @@ export async function onRequestPost(context) {
     }
 
     const url = normalizeSupportedMapsUrl(body?.url);
+    await assertGoogleApiRateLimit(env);
+
     const resolved = await resolveMapsUrlsWithGoogle([url], {
       apiKey: env?.MAPS_GROUNDING_API_KEY,
     });

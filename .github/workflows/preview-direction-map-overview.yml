@@ -91,6 +91,22 @@ jobs:
           grep -Fq 'id="map-overview"' /tmp/index.html
           grep -Fq 'renderMapOverview' /tmp/app.js
           grep -Fq 'Direction map overview' /tmp/styles.css
+          if grep -Fq 'id="start-direction"' /tmp/index.html; then
+            echo 'Old extra Direction start button must not exist.'
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs = require('fs');
+          const html = fs.readFileSync('/tmp/index.html', 'utf8');
+          const saved = html.indexOf('id="saved-heading"');
+          const direction = html.indexOf('id="direction-panel"');
+          const add = html.indexOf('id="add-heading"');
+          const candidate = html.indexOf('id="candidate-panel"');
+          if (!(saved >= 0 && saved < direction && direction < add && add < candidate)) {
+            console.error('Unexpected UI section order');
+            process.exit(1);
+          }
+          NODE
 
           node -e "const fs=require('fs'); const j=JSON.parse(fs.readFileSync('/tmp/japan.geojson','utf8')); if(j.features?.length !== 47) process.exit(1)"
           node -e "const fs=require('fs'); const w=JSON.parse(fs.readFileSync('/tmp/world.geojson','utf8')); if(!Array.isArray(w.features) || w.features.length < 100) process.exit(1)"

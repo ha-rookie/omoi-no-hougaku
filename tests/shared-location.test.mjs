@@ -50,9 +50,34 @@ assert.deepEqual(
   }
 );
 
+assert.deepEqual(
+  classifySharedLocation({
+    title: '指定した地点',
+    text: 'https://maps.app.goo.gl/AbCdEf123',
+  }),
+  {
+    kind: 'unsupported',
+    sourceType: 'unsupported',
+    reason: 'unconfirmed-pin-title',
+  }
+);
+
+assert.deepEqual(
+  classifySharedLocation({
+    title: '91, 139',
+    text: 'https://maps.app.goo.gl/AbCdEf123',
+  }),
+  {
+    kind: 'unsupported',
+    sourceType: 'unsupported',
+    reason: 'invalid-coordinate-title',
+  }
+);
+
 assert.deepEqual(classifySharedLocation({ text: '場所だけ' }), {
   kind: 'unsupported',
   sourceType: 'unsupported',
+  reason: 'unconfirmed-pin-title',
 });
 
 console.log('shared location tests: OK');

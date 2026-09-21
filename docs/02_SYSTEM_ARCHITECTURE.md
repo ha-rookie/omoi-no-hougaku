@@ -13,6 +13,7 @@
 - ARCH-005: 任意ピンは共有titleの座標を端末内で確定し、外部APIへ送らない
 - ARCH-006: 名称付き施設だけ同一origin Pages Function経由でGoogle公式APIを利用し、API keyをBrowserへ露出しない
 - ARCH-007: Android Google Maps → Web Share TargetをMVPの地点登録主導線とする
+- ARCH-008: Google API呼び出し前にCloudflare Rate Limiter Workerでabuseを抑制する
 
 ## 3. System Context
 
@@ -30,6 +31,8 @@ Android Google Maps
       +--> share text/url が maps.app.goo.gl
       |      -> POST /api/resolve-location
       |           |
+      |           +--> Service binding -> Rate Limiter Worker
+      |           |        -> allow / 429
       |           +--> Maps Grounding Lite ResolveMapsUrls
       |           |        -> Place ID
       |           +--> Places API (New) Place Details
@@ -57,6 +60,7 @@ GitHub
 | ARCH-014 | Maps URL Resolution | Maps Grounding Lite | `maps.app.goo.gl`をPlace IDへ解決 | External Google API | External Google API |
 | ARCH-015 | Place Details | Places API (New) | Place IDから必要最小限の座標を取得 | External Google API | External Google API |
 | ARCH-016 | Secret Store | Cloudflare Pages Secret | Google API key保持 | Production Secret | Preview/Production運用方針に従う |
+| ARCH-017 | API Rate Limiter | Cloudflare Worker + Rate Limiting binding | `resolve-location` のGoogle API前段で30 req/60 secを判定 | Service binding only | Preview接続は別途判断 |
 
 ### Environment Separation
 
@@ -103,6 +107,8 @@ User opens named place in Google Maps
   -> extract supported maps.app.goo.gl URL from text/url
   -> POST /api/resolve-location
        -> validate request/origin/URL host
+       -> Service bindingでRate Limiter Workerへ判定依頼
+       -> limit超過なら429で終了
        -> Maps Grounding Lite ResolveMapsUrls
        -> obtain Place ID
        -> Places API (New) Place Details with minimal fields
@@ -141,6 +147,7 @@ GitHub branch
 | IF-006 | `POST /api/resolve-location` | 名称付き施設の共有URLを座標へ解決 | 名称付き施設追加時のみ | Same-origin + server secret | 当該新規登録のみ失敗 |
 | IF-007 | Maps Grounding Lite | Maps URL→Place ID | 名称付き施設追加時のみ | Google API key | 新規登録を失敗扱い |
 | IF-008 | Places API (New) | Place ID→座標 | 名称付き施設追加時のみ | Google API key | 新規登録を失敗扱い |
+| IF-010 | Rate Limiter Worker | Google API前段のabuse抑制 | 名称付き施設追加時のみ | Cloudflare Service binding | 429またはRate Limiter障害時に新規登録を停止 |
 
 ## 8. Trust Boundaries / Security
 
@@ -149,7 +156,8 @@ GitHub branch
 - Web Share Target: POSTをService Workerで受け、共有本文をURL queryへ載せない。端末内の一時fragmentは表示後に消去する
 - 任意ピン: valid `lat,lng` titleならServerへ共有URLを送らない
 - Server入力: 名称付き施設解決時の `https://maps.app.goo.gl/...` のみ
-- Server側検証: HTTPS、exact host、URL length、body size、same-origin Origin when present
+- Server側検証: HTTPS、exact host、URL length、body size、Origin必須 + same-origin、Fetch Metadata検証
+- Rate Limit: Google API呼び出し前に専用WorkerへService bindingし、初期値30 requests / 60 sec / Cloudflare locationで判定する
 - 外部接続: Pages Functionは固定のGoogle API endpointだけを呼ぶ。汎用fetch proxyにしない
 - Client入力検証: 緯度 -90〜90、経度 -180〜180、表示名長、共有URL形式を検証する
 - 個人情報: 登録地点・表示名はセンシティブ情報として扱いAnalyticsへ送らない
@@ -165,6 +173,8 @@ GitHub branch
 | 共有title座標が不正 | 場所を確定できない旨を表示 | 推測しない | error codeのみ |
 | Maps Grounding Lite失敗 | 名称付き施設を読み取れない旨を表示 | 再試行/別地点選択 | error categoryのみ |
 | Places API失敗 | 地点座標を取得できない旨を表示 | 再試行/別地点選択 | error categoryのみ |
+| Rate Limit超過 | 一時的に地点追加できない旨を表示 | 時間を置いて再試行 | HTTP 429 / categoryのみ |
+| Rate Limiter Worker障害 | 新規名称付き施設登録を停止 | 保存済み地点は利用可能 | 5xx / categoryのみ |
 | Geolocation denied/unavailable | 現在地が取得できない旨を表示 | 方角表示を停止 | Permission/error codeのみ |
 | Device Orientation unavailable | コンパス追従不可を表示 | 方位角・方角名の表示へ縮退 | capabilityのみ |
 | localStorage unavailable/corrupt | 保存不可または初期化確認を表示 | 一時利用は別判断 | ローカルエラー |
@@ -187,7 +197,7 @@ GitHub branch
 - Places API (New)は必要最小フィールド（id/location）だけ要求する
 - 保存済み地点表示・方位計算ではGoogle APIを呼ばない
 - Google APIの価格・無料利用枠・クレジット等は変更可能性があるため設計書へ固定金額を書かず、Production release前に公式コンソール/ドキュメントで確認する
-- API予算アラート/上限設計はTBD-006としてProduction release前に人間判断する
+- Google API利用量の第一防御はCloudflare Rate Limiter Workerとし、Google Cloud側Quota/Alertは補助策として必要時に再検討する
 
 ## 12. Architecture Decisions
 
@@ -197,9 +207,9 @@ GitHub branch
 - ADR-0002: 保存先は端末内のみ、最大5か所とする — 継続
 - ADR-0003: Pages Functionで通常redirectを追う方式 — ADR-0004によりSuperseded
 - ADR-0004: Web Share Target + 任意ピン直接座標 + 名称付き施設公式API解決をMVP主導線とする
+- ADR-0005: Pages FunctionのGoogle API前段を専用Rate Limiter Workerで保護する
 
 ## 13. 未決事項
 
-- TBD-ARCH-005: API利用量が増えた場合のRate Limit方式
-- TBD-ARCH-006: Production release前のGoogle API予算アラート/上限
+- TBD-ARCH-006: Google Cloud側Quota/Alertを追加で必要とする利用量・課金条件
 - TBD-ARCH-007: Android以外でWeb Share Targetが使えない場合の正式fallback UX

@@ -38,8 +38,14 @@ export async function receiveSharedPlace(payload, { resolveMapsUrl }) {
     };
   }
 
+  const messages = {
+    'invalid-coordinate-title': '共有された座標が正しくありません',
+    'unconfirmed-pin-title': 'この共有内容から場所を安全に確定できませんでした',
+    'maps-url-not-found': 'Google Mapsの共有URLを確認できませんでした',
+  };
+
   throw new SharedPlaceError(
-    'UNSUPPORTED_SHARE',
-    'Google Mapsの共有内容から場所を確認できませんでした'
+    classified.reason ?? 'UNSUPPORTED_SHARE',
+    messages[classified.reason] ?? 'Google Mapsの共有内容から場所を確認できませんでした'
   );
 }

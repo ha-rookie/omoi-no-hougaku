@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-import { computeWmm2025 } from '../../public/js/vendor/geomagnetism-wmm2025.js';
+import { computeWmm2025 } from '../public/js/vendor/geomagnetism-wmm2025.js';
 
 const model = JSON.parse(
-  await readFile(new URL('../../public/data/wmm-2025.json', import.meta.url), 'utf8'),
+  await readFile(new URL('../public/data/wmm-2025.json', import.meta.url), 'utf8'),
 );
 
 const NOAA_REFERENCE = [

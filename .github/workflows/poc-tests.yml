@@ -3,10 +3,6 @@ name: PoC tests
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - 'poc/**'
-      - 'functions/**'
-      - 'tests/**'
 
 permissions:
   contents: read

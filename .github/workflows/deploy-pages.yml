@@ -51,6 +51,8 @@ jobs:
           test -s functions/_shared/maps-grounding-resolver.js
           test -s functions/api/resolve-location.js
           test -s functions/_shared/places-details.js
+          test -s functions/_shared/request-security.js
+          test -s tests/request-security.test.mjs
           node --check poc/google-maps-share-link/resolver.mjs
           node --check poc/google-maps-share-link/share-location-resolver.mjs
           node --check poc/google-maps-share-link/sw-share-target.js
@@ -60,6 +62,8 @@ jobs:
           node --check functions/_shared/maps-grounding-resolver.js
           node --check functions/api/resolve-location.js
           node --check functions/_shared/places-details.js
+          node --check functions/_shared/request-security.js
+          node --check tests/request-security.test.mjs
           node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('poc/google-maps-share-link/share-target-manifest.webmanifest','utf8')); if(!m.share_target || m.share_target.method !== 'POST') process.exit(1)"
 
       - name: Run resolver tests
@@ -71,6 +75,7 @@ jobs:
           node tests/maps-grounding-resolver.test.mjs
           node tests/places-details.test.mjs
           node tests/share-location-resolver.test.mjs
+          node tests/request-security.test.mjs
 
       - name: Write Pages build marker
         shell: bash
@@ -105,21 +110,33 @@ jobs:
             exit 1
           fi
 
+          ORIGIN="${BASE_URL%/}"
           ready=0
           for attempt in $(seq 1 30); do
             echo "Pages readiness attempt $attempt/30: $BASE_URL"
 
+            no_origin_status="$(curl -sS -o /tmp/no-origin.json -w '%{http_code}' \
+              -X POST "$BASE_URL/api/resolve-location" \
+              -H 'content-type: application/json' \
+              --data '{}')" || no_origin_status="000"
+
             api_status="$(curl -sS -o /tmp/api.json -w '%{http_code}' \
               -X POST "$BASE_URL/api/resolve-map" \
               -H 'content-type: application/json' \
+              -H "Origin: $ORIGIN" \
+              -H 'Sec-Fetch-Site: same-origin' \
               --data '{}')" || api_status="000"
             grounding_status="$(curl -sS -o /tmp/grounding-api.json -w '%{http_code}' \
               -X POST "$BASE_URL/api/resolve-maps-url" \
               -H 'content-type: application/json' \
+              -H "Origin: $ORIGIN" \
+              -H 'Sec-Fetch-Site: same-origin' \
               --data '{}')" || grounding_status="000"
             location_status="$(curl -sS -o /tmp/location-api.json -w '%{http_code}' \
               -X POST "$BASE_URL/api/resolve-location" \
               -H 'content-type: application/json' \
+              -H "Origin: $ORIGIN" \
+              -H 'Sec-Fetch-Site: same-origin' \
               --data '{}')" || location_status="000"
 
             if curl -fsS "$BASE_URL/build.json" -o /tmp/build.json \
@@ -146,6 +163,8 @@ jobs:
               && grep -q '/share-target' /tmp/sw-share-target.js \
               && grep -q 'MAPS GROUNDING LITE PoC' /tmp/resolution-api-poc.html \
               && grep -q 'MAPS URL → LOCATION PoC' /tmp/location-poc.html \
+              && [ "$no_origin_status" = '403' ] \
+              && grep -q 'ORIGIN_REQUIRED' /tmp/no-origin.json \
               && [ "$api_status" = '400' ] \
               && grep -q 'URL_REQUIRED' /tmp/api.json \
               && [ "$grounding_status" = '400' ] \

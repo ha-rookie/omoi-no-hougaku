@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5f4">
+  <meta name="description" content="大切な人や場所の方角を、静かに向くためのWebアプリ">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/assets/app-icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <title>想いの方角</title>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>想いの方角</h1>
+      <p class="lead">大切な場所を、たくさん集めなくていい。いま向きたい場所だけを、端末に残します。</p>
+    </header>
+
+    <section class="card" aria-labelledby="add-heading">
+      <h2 id="add-heading">場所を追加</h2>
+      <p>Google Mapsで場所を開き、「共有」から「想いの方角」を選んでください。</p>
+      <div class="actions">
+        <a class="button" href="https://www.google.com/maps" target="_blank" rel="noopener noreferrer">Google Mapsを開く</a>
+      </div>
+      <p class="muted">任意ピンの緯度経度は端末内で確認します。施設名などの共有は必要なときだけGoogle公式APIで確認します。</p>
+    </section>
+
+    <div id="status" class="status" role="status" aria-live="polite">Google Mapsから場所を共有できます。</div>
+
+    <section id="candidate-panel" class="card" hidden aria-labelledby="candidate-heading">
+      <h2 id="candidate-heading">この場所を保存</h2>
+      <p id="candidate-summary" class="notice"></p>
+      <form id="save-place-form">
+        <div class="form-row">
+          <label for="place-name">自分だけが分かる名前</label>
+          <input id="place-name" name="place-name" type="text" autocomplete="off" required maxlength="40" placeholder="例：故郷、あの海、祖父母の家">
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit">端末に保存</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="selected-panel" class="card" hidden aria-labelledby="selected-heading">
+      <h2 id="selected-heading">いま選んでいる場所</h2>
+      <p><strong id="selected-name"></strong></p>
+      <p class="muted">方角表示は次の実装で追加します。この段階では地点の登録・選択・削除だけを確認します。</p>
+    </section>
+
+    <section class="card" aria-labelledby="saved-heading">
+      <h2 id="saved-heading">保存した場所 <span id="saved-count" class="counter">0 / 5</span></h2>
+      <p id="empty-state" class="muted">まだ保存した場所はありません。</p>
+      <ul id="place-list" class="place-list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>保存について</h2>
+      <p class="muted">場所の名前と座標はこの端末のブラウザ内に保存します。アカウントやサーバーDBには保存しません。ブラウザのサイトデータを消すと登録内容も消えます。</p>
+    </section>
+  </main>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

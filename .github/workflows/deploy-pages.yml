@@ -53,6 +53,7 @@ jobs:
           test -s public/js/infrastructure/location-resolver-client.js
           test -s public/js/infrastructure/place-repository.js
           test -s public/js/infrastructure/internal-test-mode.js
+          test -s public/js/infrastructure/pwa-install.js
           test -s functions/api/resolve-location.js
           test -s functions/_shared/maps-grounding-resolver.js
           test -s functions/_shared/places-details.js
@@ -69,6 +70,7 @@ jobs:
           node --check public/js/infrastructure/location-resolver-client.js
           node --check public/js/infrastructure/place-repository.js
           node --check public/js/infrastructure/internal-test-mode.js
+          node --check public/js/infrastructure/pwa-install.js
           node --check functions/api/resolve-location.js
           node --check functions/_shared/maps-grounding-resolver.js
           node --check functions/_shared/places-details.js
@@ -109,6 +111,7 @@ jobs:
           node tests/map-geometry.test.mjs
           node tests/alignment-transition.test.mjs
           node tests/internal-test-mode.test.mjs
+          node tests/pwa-install.test.mjs
 
       - name: Configure and verify Pages rate limiter service binding
         env:

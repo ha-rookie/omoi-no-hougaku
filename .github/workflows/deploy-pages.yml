@@ -40,6 +40,8 @@ jobs:
           test -s public/app.js
           test -s public/styles.css
           test -s public/manifest.webmanifest
+          test -s public/robots.txt
+          test -s public/sitemap.xml
           test -s public/sw.js
           test -s public/assets/app-icon.svg
           test -s public/assets/backgrounds/omoi-no-hougaku-bg-morning-mist-beige.png
@@ -75,6 +77,9 @@ jobs:
           grep -Fq "navigator.serviceWorker.register('/sw.js'" public/app.js
           grep -Fq "requestUrl.pathname === '/share-target'" public/sw.js
           grep -Fq 'omoi-no-hougaku-bg-morning-mist-beige.png' public/styles.css
+          grep -Fq '<link rel="canonical" href="https://omoi-no-hougaku.pages.dev/">' public/index.html
+          grep -Fq 'Sitemap: https://omoi-no-hougaku.pages.dev/sitemap.xml' public/robots.txt
+          grep -Fq '<loc>https://omoi-no-hougaku.pages.dev/</loc>' public/sitemap.xml
 
           if grep -R -E "from ['\"][^'\"]*poc/|import\(['\"][^'\"]*poc/" public --include='*.js'; then
             echo 'Production code must not import from poc/.'
@@ -180,6 +185,8 @@ jobs:
             manifest_ok=0
             sw_ok=0
             background_ok=0
+            robots_ok=0
+            sitemap_ok=0
 
             if curl -fsS "$BASE_URL/" -o /tmp/index.html && grep -Fq '想いの方角' /tmp/index.html; then
               root_ok=1
@@ -198,13 +205,25 @@ jobs:
               background_ok=1
             fi
 
-            echo "status: build=$build_ok root=$root_ok manifest=$manifest_ok sw=$sw_ok background=$background_ok no-origin=$no_origin_status resolve-location=$location_status"
+            if curl -fsS "$BASE_URL/robots.txt" -o /tmp/robots.txt \
+              && grep -Fq 'Sitemap: https://omoi-no-hougaku.pages.dev/sitemap.xml' /tmp/robots.txt; then
+              robots_ok=1
+            fi
+
+            if curl -fsS "$BASE_URL/sitemap.xml" -o /tmp/sitemap.xml \
+              && grep -Fq '<loc>https://omoi-no-hougaku.pages.dev/</loc>' /tmp/sitemap.xml; then
+              sitemap_ok=1
+            fi
+
+            echo "status: build=$build_ok root=$root_ok manifest=$manifest_ok sw=$sw_ok background=$background_ok robots=$robots_ok sitemap=$sitemap_ok no-origin=$no_origin_status resolve-location=$location_status"
 
             if [ "$build_ok" = '1' ] \
               && [ "$root_ok" = '1' ] \
               && [ "$manifest_ok" = '1' ] \
               && [ "$sw_ok" = '1' ] \
               && [ "$background_ok" = '1' ] \
+              && [ "$robots_ok" = '1' ] \
+              && [ "$sitemap_ok" = '1' ] \
               && [ "$no_origin_status" = '403' ] \
               && grep -q 'ORIGIN_REQUIRED' /tmp/no-origin.json \
               && [ "$location_status" = '400' ] \
@@ -219,7 +238,7 @@ jobs:
           if [ "$ready" -ne 1 ]; then
             echo 'MVP production deployment did not become ready within 60 seconds.'
             echo 'Latest responses:'
-            for file in /tmp/build.json /tmp/index.html /tmp/manifest.json /tmp/sw.js /tmp/no-origin.json /tmp/location-api.json; do
+            for file in /tmp/build.json /tmp/index.html /tmp/manifest.json /tmp/robots.txt /tmp/sitemap.xml /tmp/sw.js /tmp/no-origin.json /tmp/location-api.json; do
               echo "--- $file ---"
               cat "$file" 2>/dev/null || true
               echo

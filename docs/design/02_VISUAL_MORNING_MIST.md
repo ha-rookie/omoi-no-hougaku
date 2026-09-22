@@ -62,17 +62,19 @@ system sans-serifを使う。
 
 ## 4. Background
 
-Raster background imageを必須にしない。
+承認済み背景Asset:
 
-ProductionではCSS-onlyのmist surfaceを基本とする。
+- `public/assets/backgrounds/omoi-no-hougaku-bg-morning-mist-beige.png`
+
+表示方針:
 
 - 生成りbase
-- very low opacityのradial / linear mist
-- edge側に淡い青灰
-- content readabilityを優先
+- 朝もやの風景Assetを固定せず通常backgroundとしてcover表示
+- Assetの上に生成りoverlayを重ね、文字とCardの可読性を優先
+- Cardは半透明にし、背景をわずかに感じられる程度にする
+- edge側のmist layerはCSSで補助
+- Quiet Modeでは背景Assetを見せない
 - scroll時に文字の背後へ強い模様を置かない
-
-将来、承認済みAssetを使う場合もこのVisual tokenに従う。
 
 ## 5. Card
 

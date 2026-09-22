@@ -244,6 +244,11 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 
 - PWA採用: MVPで採用
 - Web Share Target: Android Google Mapsからの地点登録主導線として採用
+- Google Mapsの共有先として利用するにはPWAインストールが前提のため、未インストール時はAdd Guide内でその理由と追加方法を案内する
+- Android/Chromiumでは `beforeinstallprompt` を捕捉し、Install CTAからnative promptを起動する
+- `display-mode: standalone` またはiOS standalone時はInstall UIを表示しない
+- `beforeinstallprompt` 非対応環境ではブラウザメニュー/ホーム画面追加のmanual guidanceへ縮退する
+- ManifestはChromium installability向けに192x192 / 512x512 icon descriptorを持つ。Approved `app-icon.svg` のvisual designは変更しない
 - Service Worker: share target POST受信とApp shellの必要最小処理を担当
 - Share Target POSTはService Workerで受け、共有本文をURL queryへ載せない
 - Cache対象: App shell / static assets / WMM assets / map vector assetsを候補とする

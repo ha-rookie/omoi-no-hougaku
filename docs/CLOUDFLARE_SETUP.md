@@ -2,7 +2,7 @@
 
 ## 1. Readiness Check
 
-### 現在のPoC
+### PoC完了時の確認
 
 - [x] GitHub Repository接続権限
 - [x] GitHub Repository visibility: Public（2026-09-21）
@@ -19,7 +19,7 @@
 
 ### MVP本番移行時
 
-Issue #61でProduction deploy pipelineをPoCからMVP本体へ切り替える。
+Issue #61でProduction deploy pipelineをPoCからMVP本体へ切り替え済み。
 
 - [x] Deploy workflowのOutput Directoryを`public/`へ変更
 - [x] `public/manifest.webmanifest` / `public/sw.js` / 承認済み背景AssetをDeploy対象化
@@ -27,13 +27,13 @@ Issue #61でProduction deploy pipelineをPoCからMVP本体へ切り替える。
 - [x] build markerを`public/build.json`へ出力し、Production main SHAとの一致をsmoke testする
 - [x] main以外からの`workflow_dispatch`によるProduction deployをjob guardで禁止
 - [x] PR #60のVisual Previewで同一`public/` UIをスマホ確認済み
-- [ ] Issue #61 merge後にProduction deploy / smoke成功を確認
+- [x] Issue #61 merge後のProduction deploy / smoke成功を確認（GitHub Actions run `35685757699`、main SHA `f7fded1ee87bda43ef20e325adec5d6fa34cdde7`）
 - [x] Google API keyはMaps Grounding Lite + Places API (New)だけにAPI制限する方針を確認済み
 - [x] Google Cloud側のQuota編集/課金停止をrelease gateにしない。現在の利用条件ではQuota編集が利用できず、Budget Alertもhard stopではないため、Google API到達前のCloudflare Rate Limiter Workerを実効的な自動制限として採用済み
 - [x] API abuse対策は専用Cloudflare Worker + Rate Limiting binding方式に決定（ADR-0005）
 - [x] Rate Limiter WorkerをProductionへDeploy（Worker version `0106d89a-c32e-48e0-a298-394b2730b4cf`）
 - [x] GitHub ActionsからPages productionへService binding `RATE_LIMITER_SERVICE` を自動設定
-- [ ] SEO/robots/Preview noindexを本番方針に合わせる
+- [x] SEO/robots/Preview noindexを本番方針に合わせる（canonical / robots.txt / sitemap.xml / Cloudflare Preview noindex）
 
 ## 2. Deploy方式
 
@@ -52,7 +52,7 @@ Workflowは `.github/workflows/deploy-pages.yml` を正とする。
 
 Rate Limiter Workerは `.github/workflows/deploy-rate-limiter.yml` で別Deployする。Workerを先にDeployし、その後 `.github/workflows/deploy-pages.yml` がCloudflare Pages Project APIでproduction Service bindingを追加・確認してからPagesをDeployする。Cloudflare Dashboardでの手動binding設定は不要とする。
 
-Issue #61でMVP本体のDeploy directoryを`public/`へ変更する。Cloudflare公式Direct Upload仕様に従い、Repository rootから`wrangler pages deploy public`を実行することで、rootの`functions/`もPages Functionsとして同時Deployする。Workflow、smoke test、rollback確認を同一Release変更として扱う。
+Issue #61でMVP本体のDeploy directoryを`public/`へ変更済み。Cloudflare公式Direct Upload仕様に従い、Repository rootから`wrangler pages deploy public`を実行することで、rootの`functions/`もPages Functionsとして同時Deployする。Workflow、smoke test、rollback確認を同一Release変更として扱う。
 
 ## 3. Runtime Secret
 
@@ -191,5 +191,7 @@ Issue #61でMVP Production公開時の最小SEOを確定する。
 - Pages Service binding自動設定: success
 - Production Pages deploy: success
 - Production smoke test: success
-- Production main SHA: `87abc85200f927d72e3ba80c351b330a040de1fd`
+- Production main SHA: `f7fded1ee87bda43ef20e325adec5d6fa34cdde7`
+- MVP Production deploy run: `35685757699`
+- Production smoke: build/root/manifest/sw/background/robots/sitemapすべて成功、Originなし`/api/resolve-location`は403、same-origin空payloadは400
 - 意図的な30回超過の本番負荷試験はGoogle APIへの不要な実リクエストを避けるため未実施。Rate Limiter Worker単体testとPages Service binding client testで429/503経路を確認済み

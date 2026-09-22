@@ -56,6 +56,10 @@ export class AppView {
     this.alignedDistanceLabel = documentRef.querySelector('#aligned-distance-label');
     this.restartDirectionButton = documentRef.querySelector('#restart-direction');
     this.alignedCloseDirectionButton = documentRef.querySelector('#aligned-close-direction');
+    this.enterQuietModeButton = documentRef.querySelector('#enter-quiet-mode');
+    this.quietPanel = documentRef.querySelector('#quiet-panel');
+    this.quietTargetName = documentRef.querySelector('#quiet-target-name');
+    this.themeColorMeta = documentRef.querySelector('meta[name="theme-color"]');
 
     this.nameInput.maxLength = MAX_PLACE_NAME_LENGTH;
   }
@@ -102,6 +106,20 @@ export class AppView {
 
   onAlignedCloseDirection(handler) {
     this.alignedCloseDirectionButton.addEventListener('click', handler);
+  }
+
+  onEnterQuietMode(handler) {
+    this.enterQuietModeButton.addEventListener('click', handler);
+  }
+
+  onLeaveQuietMode(handler) {
+    this.quietPanel.addEventListener('click', handler);
+    this.quietPanel.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handler();
+      }
+    });
   }
 
   renderPlaces(places, { selectedId = null, onSelect, onDelete } = {}) {
@@ -161,6 +179,8 @@ export class AppView {
 
   renderDirectionSession(session) {
     const bearing = session.targetBearing;
+    this.setQuietModeActive(false);
+    this.quietPanel.hidden = true;
     this.alignedPanel.hidden = true;
     this.directionContent.hidden = false;
     this.directionStatus.hidden = false;
@@ -206,6 +226,30 @@ export class AppView {
 
     this.alignedCompassRotor.style.transform = `rotate(${-bearing}deg)`;
     this.alignedCompass.style.setProperty('--compass-counter', `${bearing}deg`);
+  }
+
+  showQuietMode(session) {
+    if (!session) return;
+    this.quietTargetName.textContent = session.selectedPlaceName;
+    this.alignedPanel.hidden = true;
+    this.quietPanel.hidden = false;
+    this.setQuietModeActive(true);
+    this.quietPanel.focus({ preventScroll: true });
+  }
+
+  leaveQuietMode() {
+    this.setQuietModeActive(false);
+    this.quietPanel.hidden = true;
+    this.alignedPanel.hidden = false;
+    this.enterQuietModeButton.focus({ preventScroll: true });
+  }
+
+  setQuietModeActive(active) {
+    this.document.body.classList.toggle('quiet-mode-active', active);
+    this.themeColorMeta?.setAttribute(
+      'content',
+      active ? '#111315' : '#f5f5f4'
+    );
   }
 
   setCompassUnavailable(message) {
@@ -276,6 +320,8 @@ export class AppView {
   }
 
   hideDirection() {
+    this.setQuietModeActive(false);
+    this.quietPanel.hidden = true;
     this.directionPanel.hidden = true;
     this.directionContent.hidden = true;
     this.alignedPanel.hidden = true;

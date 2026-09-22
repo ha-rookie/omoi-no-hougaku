@@ -44,6 +44,7 @@ import {
     latitude: 35.681236,
     longitude: 139.767125,
     sourceType: 'maps-url-api',
+    suggestedName: '施設',
   });
 }
 

@@ -35,6 +35,7 @@ export async function receiveSharedPlace(payload, { resolveMapsUrl }) {
       latitude: resolved.latitude,
       longitude: resolved.longitude,
       sourceType: classified.sourceType,
+      suggestedName: classified.suggestedName ?? '',
     };
   }
 

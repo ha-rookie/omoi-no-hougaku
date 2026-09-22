@@ -95,8 +95,9 @@ system sans-serifを使う。
 2. 保存地点を選ぶ
 3. Direction（Compass / Map）
 4. 場所を追加
-5. Google Mapsから共有
-6. 名前を付けて保存
+5. 未インストールなら、Google Maps共有に必要なホーム画面追加を案内
+6. Google Mapsから共有
+7. 名前を付けて保存
 
 Visual redesignを理由に中間Cardや追加clickを復活させない。
 
@@ -116,6 +117,13 @@ Delete:
 - fillは原則使わない
 
 Pill shapeは維持するが、影を強くしない。
+
+Install guidance:
+- 「場所を追加」Card内に置き、新しい独立Cardは増やさない
+- 通常説明文より少し強いがPrimary CTAより弱い
+- 強いborder/shadowは使わない
+- installable時だけ「アプリをインストール」Buttonを出し、standalone時はguidance全体を隠す
+- manual fallbackは小さなMuted textで案内する
 
 ## 8. Compass
 

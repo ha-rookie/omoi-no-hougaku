@@ -1315,3 +1315,50 @@ body.quiet-mode-active {
     background: var(--omoi-card);
   }
 }
+
+
+/* Morning Mist approved background asset */
+
+body::before {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(245, 242, 234, .42) 0%,
+      rgba(245, 242, 234, .60) 34%,
+      rgba(245, 242, 234, .76) 72%,
+      rgba(245, 242, 234, .88) 100%
+    ),
+    url("/assets/backgrounds/omoi-no-hougaku-bg-morning-mist-beige.png")
+      center top / cover no-repeat;
+  filter: none;
+  opacity: 1;
+  transform: none;
+}
+
+body::after {
+  z-index: 0;
+  opacity: .36;
+}
+
+main {
+  z-index: 1;
+}
+
+body.quiet-mode-active::before,
+body.quiet-mode-active::after {
+  opacity: 0;
+}
+
+@media (max-width: 480px) {
+  body::before {
+    background-position: 50% 0;
+  }
+}

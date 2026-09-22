@@ -186,8 +186,8 @@ classified as maps URL
        -> Place ID
        -> Places API (New) Place Details (id/location only)
   -> CoordinateValidator
-  -> PlaceCandidate(method=maps-url-api)
-  -> AddPlaceUI confirm + name
+  -> PlaceCandidate(method=maps-url-api, suggestedName=validated shared title)
+  -> AddPlaceUI prefill suggestedName (editable)
   -> RegisterPlaceUseCase
   -> PlaceRepository.save()
 ```

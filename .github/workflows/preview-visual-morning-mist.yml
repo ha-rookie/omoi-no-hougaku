@@ -29,6 +29,7 @@ jobs:
           test -s public/index.html
           test -s public/styles.css
           test -s public/manifest.webmanifest
+          test -s public/assets/backgrounds/omoi-no-hougaku-bg-morning-mist-beige.png
           test -s docs/design/02_VISUAL_MORNING_MIST.md
 
           node --check public/app.js
@@ -75,7 +76,7 @@ jobs:
           for attempt in $(seq 1 20); do
             echo "Visual Preview readiness attempt $attempt/20: $DEPLOYMENT_URL"
 
-            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/styles.css" -o /tmp/styles.css               && curl -fsS "$DEPLOYMENT_URL/manifest.webmanifest" -o /tmp/manifest.json; then
+            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/styles.css" -o /tmp/styles.css               && curl -fsS "$DEPLOYMENT_URL/manifest.webmanifest" -o /tmp/manifest.json               && curl -fsS "$DEPLOYMENT_URL/assets/backgrounds/omoi-no-hougaku-bg-morning-mist-beige.png" -o /tmp/background.png; then
               ready=1
               break
             fi
@@ -90,6 +91,8 @@ jobs:
           grep -Fq 'content="#F5F2EA"' /tmp/index.html
           grep -Fq 'Visual theme: Morning Mist / Issue #59' /tmp/styles.css
           grep -Fq -- '--omoi-accent: #556468' /tmp/styles.css
+          grep -Fq 'omoi-no-hougaku-bg-morning-mist-beige.png' /tmp/styles.css
+          test -s /tmp/background.png
           node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('/tmp/manifest.json','utf8')); if(m.theme_color !== '#F5F2EA') process.exit(1)"
 
       - name: Report preview URL

@@ -94,10 +94,14 @@ jobs:
           grep -Fq 'id="map-overview"' /tmp/index.html
           grep -Fq 'id="aligned-panel"' /tmp/index.html
           grep -Fq 'id="restart-direction"' /tmp/index.html
+          grep -Fq 'id="enter-quiet-mode"' /tmp/index.html
+          grep -Fq 'id="quiet-panel"' /tmp/index.html
           grep -Fq 'renderMapOverview' /tmp/app.js
           grep -Fq 'shouldEnterAlignedState' /tmp/app.js
           grep -Fq 'WORLD_CENTER_LONGITUDE = 135' /tmp/direction-map-preview-public/js/ui/map-overview.js 2>/dev/null || grep -Fq 'WORLD_CENTER_LONGITUDE = 135' public/js/ui/map-overview.js
           grep -Fq 'Direction map overview' /tmp/styles.css
+          grep -Fq 'Quiet mode' /tmp/styles.css
+          grep -Fq 'quiet-mode-active' /tmp/styles.css
           if grep -Fq 'id="start-direction"' /tmp/index.html; then
             echo 'Old extra Direction start button must not exist.'
             exit 1

@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - feature/direction-map-overview
+      - feature/direction-aligned-japan-centered-map
 
 permissions:
   contents: read
 
 concurrency:
-  group: preview-direction-map-overview
+  group: preview-direction-map-overview-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -33,9 +34,11 @@ jobs:
 
           node --check public/app.js
           node --check public/js/ui/app-view.js
+          node --check public/js/app/alignment-transition.js
           node --check public/js/core/map-geometry.js
           node --check public/js/ui/map-overview.js
           node tests/map-geometry.test.mjs
+          node tests/alignment-transition.test.mjs
 
           japan_size=$(wc -c < public/data/maps/japan-prefectures.geojson)
           world_size=$(wc -c < public/data/maps/world-110m.geojson)
@@ -60,7 +63,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: latest
-          command: pages deploy /tmp/direction-map-preview-public --project-name=omoi-no-hougaku --branch=feature-direction-map-overview --commit-dirty=true
+          command: pages deploy /tmp/direction-map-preview-public --project-name=omoi-no-hougaku --branch=${{ github.ref_name }} --commit-dirty=true
 
       - name: Preview smoke test
         shell: bash
@@ -89,8 +92,16 @@ jobs:
 
           grep -Fq 'id="mode-map"' /tmp/index.html
           grep -Fq 'id="map-overview"' /tmp/index.html
+          grep -Fq 'id="aligned-panel"' /tmp/index.html
+          grep -Fq 'id="restart-direction"' /tmp/index.html
+          grep -Fq 'id="enter-quiet-mode"' /tmp/index.html
+          grep -Fq 'id="quiet-panel"' /tmp/index.html
           grep -Fq 'renderMapOverview' /tmp/app.js
+          grep -Fq 'shouldEnterAlignedState' /tmp/app.js
+          grep -Fq 'WORLD_CENTER_LONGITUDE = 135' /tmp/direction-map-preview-public/js/ui/map-overview.js 2>/dev/null || grep -Fq 'WORLD_CENTER_LONGITUDE = 135' public/js/ui/map-overview.js
           grep -Fq 'Direction map overview' /tmp/styles.css
+          grep -Fq 'Quiet mode' /tmp/styles.css
+          grep -Fq 'quiet-mode-active' /tmp/styles.css
           if grep -Fq 'id="start-direction"' /tmp/index.html; then
             echo 'Old extra Direction start button must not exist.'
             exit 1

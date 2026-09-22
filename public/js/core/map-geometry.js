@@ -6,6 +6,15 @@ export function normalizeLongitude(value) {
   return ((value + 180) % 360 + 360) % 360 - 180;
 }
 
+export function wrapLongitudeAroundCenter(longitude, centerLongitude = 135) {
+  if (!Number.isFinite(longitude) || !Number.isFinite(centerLongitude)) {
+    return null;
+  }
+
+  const relative = normalizeLongitude(longitude - centerLongitude);
+  return relative === null ? null : centerLongitude + relative;
+}
+
 function validPoint(point) {
   return Boolean(
     point &&
@@ -203,6 +212,77 @@ export function splitAntimeridian(points) {
         {
           latitude: crossingLatitude,
           longitude: wrappedBoundary,
+        },
+        current,
+      ]);
+    } else {
+      segments[segments.length - 1].push(current);
+    }
+  }
+
+  return segments.filter((segment) => segment.length >= 2);
+}
+
+
+export function splitMapSeam(points, centerLongitude = 135) {
+  if (!Array.isArray(points) || points.length === 0) return [];
+
+  const leftBoundary = centerLongitude - 180;
+  const rightBoundary = centerLongitude + 180;
+  const firstLongitude = wrapLongitudeAroundCenter(
+    points[0].longitude,
+    centerLongitude
+  );
+
+  if (firstLongitude === null) return [];
+
+  const segments = [[{ ...points[0], longitude: firstLongitude }]];
+
+  for (let i = 1; i < points.length; i += 1) {
+    const previous =
+      segments[segments.length - 1][segments[segments.length - 1].length - 1];
+    const wrappedLongitude = wrapLongitudeAroundCenter(
+      points[i].longitude,
+      centerLongitude
+    );
+    if (wrappedLongitude === null) continue;
+
+    const current = {
+      ...points[i],
+      longitude: wrappedLongitude,
+    };
+
+    const diff = current.longitude - previous.longitude;
+    let adjustedLongitude = current.longitude;
+
+    if (diff > 180) adjustedLongitude -= 360;
+    if (diff < -180) adjustedLongitude += 360;
+
+    if (
+      adjustedLongitude < leftBoundary ||
+      adjustedLongitude > rightBoundary
+    ) {
+      const boundary =
+        adjustedLongitude < leftBoundary ? leftBoundary : rightBoundary;
+      const oppositeBoundary =
+        boundary === leftBoundary ? rightBoundary : leftBoundary;
+      const denominator = adjustedLongitude - previous.longitude;
+      const t =
+        denominator === 0
+          ? 0
+          : (boundary - previous.longitude) / denominator;
+      const crossingLatitude =
+        previous.latitude + (current.latitude - previous.latitude) * t;
+
+      segments[segments.length - 1].push({
+        latitude: crossingLatitude,
+        longitude: boundary,
+      });
+
+      segments.push([
+        {
+          latitude: crossingLatitude,
+          longitude: oppositeBoundary,
         },
         current,
       ]);

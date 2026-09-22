@@ -1,12 +1,15 @@
 import {
   greatCirclePoints,
   selectMapMode,
-  splitAntimeridian,
+  splitMapSeam,
+  wrapLongitudeAroundCenter,
 } from '../core/map-geometry.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const JAPAN_DATA_URL = '/data/maps/japan-prefectures.geojson';
 const WORLD_DATA_URL = '/data/maps/world-110m.geojson';
+const WORLD_CENTER_LONGITUDE = 135;
+const WORLD_WIDTH = 1440;
 
 let japanDataPromise = null;
 let worldDataPromise = null;
@@ -48,6 +51,18 @@ function project(point) {
     x: (point.longitude + 180) * 4,
     y: (90 - point.latitude) * 4,
   };
+}
+
+function projectWorld(point) {
+  const longitude = wrapLongitudeAroundCenter(
+    point.longitude,
+    WORLD_CENTER_LONGITUDE
+  );
+
+  return project({
+    latitude: point.latitude,
+    longitude,
+  });
 }
 
 function ringPath(ring) {
@@ -108,11 +123,16 @@ function japanViewBox(current, target) {
 }
 
 function worldViewBox() {
-  return { x: 0, y: 28, width: 1440, height: 640 };
+  return {
+    x: WORLD_CENTER_LONGITUDE * 4,
+    y: 28,
+    width: WORLD_WIDTH,
+    height: 640,
+  };
 }
 
-function appendMarker(group, point, label, kind, scale) {
-  const p = project(point);
+function appendMarker(group, point, label, kind, scale, mode) {
+  const p = mode === 'world' ? projectWorld(point) : project(point);
   const markerSize = Math.max(scale * 0.012, 0.12);
   const labelOffset = markerSize * 1.8;
   const labelSize = Math.max(scale * 0.025, 0.24);
@@ -148,14 +168,20 @@ function appendMarker(group, point, label, kind, scale) {
   group.append(marker);
 }
 
-function appendRelationshipLines(group, current, target, scale) {
+function appendRelationshipLines(group, current, target, scale, mode) {
   const points = greatCirclePoints(current, target, 64);
-  const segments = splitAntimeridian(points);
+  const segments =
+    mode === 'world'
+      ? splitMapSeam(points, WORLD_CENTER_LONGITUDE)
+      : [points];
 
   for (const segment of segments) {
     const d = segment
       .map((point, index) => {
-        const p = project(point);
+        const p =
+          mode === 'world'
+            ? project({ latitude: point.latitude, longitude: point.longitude })
+            : project(point);
         return `${index === 0 ? 'M' : 'L'}${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
       })
       .join(' ');
@@ -221,25 +247,35 @@ export async function renderMapOverview({
         : '現在地と目的地を示す世界地図',
   });
 
-  svg.append(
-    svgElement('path', {
-      d: buildGeographyPath(geography),
-      class: `map-geography map-geography--${mode}`,
-      'fill-rule': 'evenodd',
-      'stroke-width': Math.max(scale * 0.0008, 0.01),
-      'vector-effect': 'non-scaling-stroke',
-    })
-  );
+  const geographyPath = buildGeographyPath(geography);
+  const geographyAttributes = {
+    d: geographyPath,
+    class: `map-geography map-geography--${mode}`,
+    'fill-rule': 'evenodd',
+    'stroke-width': Math.max(scale * 0.0008, 0.01),
+    'vector-effect': 'non-scaling-stroke',
+  };
+
+  svg.append(svgElement('path', geographyAttributes));
+  if (mode === 'world') {
+    svg.append(
+      svgElement('path', {
+        ...geographyAttributes,
+        transform: `translate(${WORLD_WIDTH} 0)`,
+      })
+    );
+  }
 
   const relationshipGroup = svgElement('g', { class: 'map-relationship' });
-  appendRelationshipLines(relationshipGroup, current, target, scale);
-  appendMarker(relationshipGroup, current, '現在地', 'current', scale);
+  appendRelationshipLines(relationshipGroup, current, target, scale, mode);
+  appendMarker(relationshipGroup, current, '現在地', 'current', scale, mode);
   appendMarker(
     relationshipGroup,
     target,
     targetName || '目的地',
     'target',
-    scale
+    scale,
+    mode
   );
   svg.append(relationshipGroup);
 

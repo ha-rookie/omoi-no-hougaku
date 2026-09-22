@@ -47,6 +47,12 @@ import {
   assert.equal(aligned.alignment.aligned, true);
   assert.equal(aligned.relativeAngle, 0);
 
+  const insideTolerance = updateDirectionSessionHeading(base, 356, 0, 5);
+  assert.equal(insideTolerance.alignment.aligned, true);
+
+  const outsideTolerance = updateDirectionSessionHeading(base, 354, 0, 5);
+  assert.equal(outsideTolerance.alignment.aligned, false);
+
   const turnRight = updateDirectionSessionHeading(base, 330, 0, 5);
   assert.equal(turnRight.alignment.direction, 'right');
   assert.equal(turnRight.alignment.delta, 30);

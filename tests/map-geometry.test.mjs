@@ -6,6 +6,8 @@ import {
   pointInFeatureCollection,
   selectMapMode,
   splitAntimeridian,
+  splitMapSeam,
+  wrapLongitudeAroundCenter,
 } from '../public/js/core/map-geometry.js';
 
 const japan = JSON.parse(
@@ -73,3 +75,38 @@ assert.throws(
 );
 
 console.log('map geometry tests: OK');
+
+
+assert.equal(wrapLongitudeAroundCenter(135, 135), 135);
+assert.equal(wrapLongitudeAroundCenter(-157.8583, 135) > 180, true);
+assert.equal(wrapLongitudeAroundCenter(0, 135), 0);
+
+{
+  const points = greatCirclePoints(tokyo, honolulu, 64);
+  const japanCenteredSegments = splitMapSeam(points, 135);
+  assert.equal(
+    japanCenteredSegments.length,
+    1,
+    'Tokyo→Honolulu should stay continuous on Japan-centered World Map'
+  );
+}
+
+{
+  const newYork = { latitude: 40.7128, longitude: -74.006 };
+  const lisbon = { latitude: 38.7223, longitude: -9.1393 };
+  const points = greatCirclePoints(newYork, lisbon, 64);
+  const japanCenteredSegments = splitMapSeam(points, 135);
+  assert.ok(
+    japanCenteredSegments.length >= 2,
+    'Path crossing the 45°W map seam should split'
+  );
+
+  for (const segment of japanCenteredSegments) {
+    for (let index = 1; index < segment.length; index += 1) {
+      const delta = Math.abs(
+        segment[index].longitude - segment[index - 1].longitude
+      );
+      assert.ok(delta <= 180, `unexpected Japan-centered longitude jump: ${delta}`);
+    }
+  }
+}

@@ -91,6 +91,64 @@
           <p id="map-attribution" class="map-attribution muted" hidden></p>
         </div>
       </div>
+
+      <div id="aligned-panel" class="aligned-panel" hidden>
+        <p class="aligned-eyebrow">方角が合いました</p>
+        <h2><span id="aligned-target-name"></span>はこちらの方角です</h2>
+
+        <div id="aligned-compass" class="direction-compass aligned-compass" aria-hidden="true">
+          <div id="aligned-compass-rotor" class="compass-rotor">
+            <span class="compass-cardinal compass-cardinal--north"><span>北</span></span>
+            <span class="compass-cardinal compass-cardinal--east"><span>東</span></span>
+            <span class="compass-cardinal compass-cardinal--south"><span>南</span></span>
+            <span class="compass-cardinal compass-cardinal--west"><span>西</span></span>
+          </div>
+          <span class="target-fixed-mark">
+            <span class="target-fixed-dot"></span>
+            <span class="target-fixed-label">目的地</span>
+          </span>
+          <span class="compass-center"></span>
+          <span class="aligned-heading-needle"></span>
+        </div>
+
+        <p class="aligned-copy">現在の向きと目的地が重なりました。</p>
+
+        <dl class="direction-metrics aligned-metrics">
+          <div>
+            <dt>目標方位</dt>
+            <dd id="aligned-bearing-label">—</dd>
+          </div>
+          <div>
+            <dt>距離</dt>
+            <dd id="aligned-distance-label">—</dd>
+          </div>
+        </dl>
+
+        <button id="enter-quiet-mode" class="quiet-mode-entry-button" type="button">静かな画面にする</button>
+
+        <div class="actions aligned-actions">
+          <button id="restart-direction" type="button">方角を見直す</button>
+          <button id="aligned-close-direction" type="button">閉じる</button>
+        </div>
+      </div>
+
+      <div
+        id="quiet-panel"
+        class="quiet-mode-panel"
+        role="button"
+        tabindex="0"
+        aria-label="静かな画面。タップすると方角一致画面へ戻ります"
+        hidden
+      >
+        <div class="quiet-mode-glow" aria-hidden="true"></div>
+        <div class="quiet-mode-content">
+          <div class="quiet-mode-mark" aria-hidden="true"><span></span></div>
+          <p id="quiet-target-name" class="quiet-mode-target"></p>
+          <div class="quiet-mode-rule" aria-hidden="true"><span></span></div>
+          <p class="quiet-mode-message">この方角に、<br>大切な場所があります。</p>
+          <p class="quiet-mode-exit-hint">画面をタップすると戻ります</p>
+        </div>
+      </div>
     </section>
 
 

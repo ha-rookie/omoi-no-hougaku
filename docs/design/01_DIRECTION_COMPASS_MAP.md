@@ -1,6 +1,6 @@
 # Direction / Compass / Map Design
 
-Status: Proposed  
+Status: Accepted  
 Related Issue: #51  
 Related ADR: ADR-0006  
 Reference implementation: `ha-rookie/yohai-compass`
@@ -115,7 +115,33 @@ current-heading needle = rotate(currentHeading - targetBearing)
 
 色だけで状態を表さない。
 
-### 4.3 Sensor fallback
+### 4.3 Alignment transition
+
+Yohai Compassの実績ある状態遷移を引き継ぐ。
+
+- 許容差は±5°
+- Compass表示中にalignedへ入った時だけ一致画面へ遷移
+- aligned確定時にheading listenerを停止し、live needleを止める
+- 一致画面ではneedleを目的地と重なった静止状態で表示
+- 地点名、目標方位、距離を表示
+- 「方角を見直す」で新しいGuidance Sessionを開始
+- Map表示中は自動で一致画面へ遷移しない
+
+### 4.4 Quiet mode
+
+Yohai CompassのQuiet Modeを宗教固有表現なしで一般化する。
+
+- 一致画面からユーザーが「静かな画面にする」を選んだ時だけ入る
+- 一致した瞬間に自動で暗転させない
+- 全画面の暗いsurfaceへ切り替える
+- 表示は保存地点名と「この方角に、大切な場所があります。」に絞る
+- Compass、距離、地図、操作ボタンはQuiet Mode中は見せない
+- heading listenerは停止済みの状態を維持する
+- body theme-colorも暗色へ切り替える
+- 画面タップ / Enter / Spaceで一致画面へ戻る
+- Torii等の遥拝固有symbolは持ち込まない
+
+### 4.5 Sensor fallback
 
 Orientationが取得できなくても、
 
@@ -263,9 +289,13 @@ Yohai CompassのMap Overviewで得た以下の知見を引き継ぐ。
 
 ### World Map
 
+- 北を上に固定
+- 日本を基準に135°Eを画面中央とする
+- 左右の継ぎ目は日本の反対側にあたる約45°Wへ置く
+- 日本→ハワイ等の太平洋方向は地図端で分断しない
 - 2点を含む
 - great-circle lineの主要部分を含む
-- antimeridianをまたぐ場合はwrapped representationを選ぶ
+- 約45°Wの表示seamをまたぐ場合だけwrapped representationを分割する
 - world全体が不要な場合は必要範囲へfit
 - current/targetが近接する場合はbounded fallback zoom
 
@@ -334,5 +364,10 @@ Androidでまず確認し、iPhone固有permission flowはheading adapterを変�
 - map切替でpermissionを再要求しない
 - Mapでcurrent/target座標を外部providerへ送信しない
 - World Mapのconnectionがgreat-circle
-- antimeridianで不自然な横断線を描かない
+- 日本中心（135°E）のWorld Mapになる
+- World Mapの表示seamで不自然な横断線を描かない
+- Compassで±5°以内に合うとheading listenerが止まり一致画面へ切り替わる
+- 一致画面からQuiet Modeへ入り、タップ/キーボードで一致画面へ戻れる
+- Quiet Modeでは暗い全画面surfaceに地点名と最小限のメッセージだけを表示する
+- Map表示中は一致画面へ自動遷移しない
 - headingが使えなくてもMapとbearing/distanceは使える

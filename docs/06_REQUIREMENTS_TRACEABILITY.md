@@ -24,11 +24,11 @@ ACTIVE / NEW相当の要件をDEFERRED/REMOVEDへ変える場合はIssue/PRに�
 | REQ-004 | 保存地点の一覧・選択・削除 | APP-001, APP-030 | ADR-0002 | #31 | `public/js/ui/app-view.js`, `public/app.js`, `public/js/infrastructure/place-repository.js` | `place-repository.test.mjs` +人間UI確認 | ACTIVE |
 | REQ-005 | 現在地取得 | APP-031, IF-002 | ADR-0006 | #51 #53 | `public/js/infrastructure/location-provider.js`, `public/app.js` | Yohai移植 + Direction integration + Android changed-boundary review | ACTIVE |
 | REQ-006 | 現在地から目的地への初期方位角計算 | APP-022 | ADR-0006 | #51 #53 | `public/js/core/bearing-engine.js`, `public/js/app/direction-session.js` | `direction-core.test.mjs`, `direction-session.test.mjs` | ACTIVE |
-| REQ-007 | 端末方位と目的地方向を表示 | APP-003, APP-012, APP-032, APP-040, IF-003, IF-012 | ADR-0006 | #51 #53 | `public/index.html`, `public/styles.css`, `public/app.js`, `public/js/core/heading-normalizer.js`, `public/js/core/alignment-engine.js`, `public/js/infrastructure/heading-provider.js`, `public/js/infrastructure/declination-provider.js` | Direction core/session + heading source + WMM NOAA reference + Android changed-boundary review | ACTIVE |
+| REQ-007 | 端末方位と目的地方向を表示 | APP-003, APP-012, APP-032, APP-040, IF-003, IF-012 | ADR-0006 | #51 #53 #57 | `public/index.html`, `public/styles.css`, `public/app.js`, `public/js/app/alignment-transition.js`, `public/js/core/heading-normalizer.js`, `public/js/core/alignment-engine.js`, `public/js/infrastructure/heading-provider.js`, `public/js/infrastructure/declination-provider.js` | Direction core/session + alignment transition + heading source + WMM NOAA reference + Android changed-boundary review | ACTIVE |
 | REQ-008 | Google Mapsを外部で開く | UI-005, IF-004 | ADR-0004 | #31 | `public/index.html` | 人間UI確認 | ACTIVE |
 | REQ-009 | PWAとしてインストール | APP §11 | ADR-0004 | #18 #25 #27 #29 #31 | `public/manifest.webmanifest`, `public/sw.js`, `public/assets/app-icon.svg` | CI manifest/service worker validation + Android実機 | ACTIVE |
 | REQ-010 | Google Maps共有先として受信 | APP-033, IF-005 | ADR-0004 | #18 #25 #27 #29 #31 | `public/manifest.webmanifest`, `public/sw.js`, `public/app.js` | CI share_target validation + Android実機 | ACTIVE |
-| REQ-011 | Compass / Japan Map / World Mapで方向・位置関係を確認 | APP-003, APP-012, APP-037, APP-038, APP-039, DATA-008, DATA-009, IF-011 | ADR-0006 | #51 #54 | `public/index.html`, `public/app.js`, `public/js/core/map-geometry.js`, `public/js/ui/map-overview.js`, `public/data/maps/*.geojson` | `map-geometry.test.mjs` + Preview smoke + Android changed-boundary review | ACTIVE |
+| REQ-011 | Compass / Japan Map / World Mapで方向・位置関係を確認 | APP-003, APP-012, APP-037, APP-038, APP-039, DATA-008, DATA-009, IF-011 | ADR-0006 | #51 #54 #57 | `public/index.html`, `public/app.js`, `public/js/core/map-geometry.js`, `public/js/ui/map-overview.js`, `public/data/maps/*.geojson` | `map-geometry.test.mjs` + Japan-centered seam tests + Preview smoke + Android changed-boundary review | ACTIVE |
 | NFR-001 | 登録地点をサーバーDBへ保存しない | ARCH Security / APP-030 | ADR-0002, ADR-0004 | 全関連Issue | Resolver stateless / `PlaceRepository` localStorage | `place-repository.test.mjs` + Network review | ACTIVE |
 | NFR-002 | 外部入力を検証し未検証HTML挿入を避ける | APP-020, APP-021, APP §13 | ADR-0004 | #25 #29 #31 | Production classifier + `textContent` DOM生成 + Function validation | classifier異常系 + static review | ACTIVE |
 | NFR-003 | 解析失敗時に推測座標を返さない | APP-010, APP-020, APP-021, APP-035 | ADR-0004 | #22 #25 #29 #31 | `receive-shared-place.js` / resolver error handling | invalid/unsupported + Android実機 | ACTIVE |
@@ -130,3 +130,19 @@ Issue #54 implementation branch:
 - 地図表示のためにcurrent/target座標を外部Map providerへ送らない
 
 Android人間確認は既存Compassを再テストせず、Japan/World切替とMap表示だけを変更境界として確認する。
+
+
+## 11. Direction UX follow-up
+
+Issue #57:
+
+- Yohai Compassと同じく、Compassで±5°以内に一致した時点でheading listenerを停止する
+- live needleを止め、通常Guidanceから一致専用画面へ切り替える
+- Map表示中は自動で一致画面へ遷移しない
+- 「方角を見直す」で新しいGuidance Sessionを開始する
+- 一致画面から「静かな画面にする」で全画面Quiet Modeへ入り、地点名と最小限のメッセージだけを表示する
+- Quiet Modeはタップ / Enter / Spaceで一致画面へ戻る
+- World Mapの中央経度を135°Eへ変更する
+- World Mapの表示seamは約45°Wへ移し、日本→ハワイのgreat-circleを分断しない
+
+人間確認は「一致→静止→一致画面→Quiet Mode」と、日本中心World Mapの2系統の変更境界だけを対象にする。

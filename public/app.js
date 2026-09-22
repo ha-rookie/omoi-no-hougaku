@@ -11,6 +11,7 @@ import {
   receiveSharedPlace,
 } from './js/app/receive-shared-place.js';
 import { registerPlace } from './js/app/register-place.js';
+import { shouldEnterAlignedState } from './js/app/alignment-transition.js';
 import {
   createDirectionSession,
   DirectionSessionError,
@@ -41,11 +42,13 @@ let stopHeadingUpdates = null;
 let directionRunId = 0;
 let directionViewMode = 'compass';
 let mapRenderId = 0;
+let alignedForCurrentRun = false;
 
 function stopDirectionRuntime() {
   directionRunId += 1;
   mapRenderId += 1;
   directionViewMode = 'compass';
+  alignedForCurrentRun = false;
   stopHeadingUpdates?.();
   stopHeadingUpdates = null;
   activeDirectionSession = null;
@@ -73,6 +76,20 @@ function applyLatestHeading() {
     activeDeclinationDegrees
   );
   view.renderDirectionHeading(activeDirectionSession);
+
+  if (
+    shouldEnterAlignedState({
+      session: activeDirectionSession,
+      viewMode: directionViewMode,
+      alreadyAligned: alignedForCurrentRun,
+    })
+  ) {
+    alignedForCurrentRun = true;
+    stopHeadingUpdates?.();
+    stopHeadingUpdates = null;
+    latestHeadingReading = null;
+    view.showAligned(activeDirectionSession);
+  }
 }
 
 async function startDirection() {
@@ -83,6 +100,7 @@ async function startDirection() {
   }
 
   stopDirectionRuntime();
+  alignedForCurrentRun = false;
   const runId = directionRunId;
   view.showDirectionLoading(place);
 
@@ -343,6 +361,27 @@ try {
 }
 
 view.onDirectionModeChange(changeDirectionMode);
+
+view.onRestartDirection(() => {
+  void startDirection();
+});
+
+view.onAlignedCloseDirection(() => {
+  stopDirectionRuntime();
+  view.hideDirection();
+});
+
+view.onEnterQuietMode(() => {
+  if (!alignedForCurrentRun || !activeDirectionSession) return;
+  stopHeadingUpdates?.();
+  stopHeadingUpdates = null;
+  view.showQuietMode(activeDirectionSession);
+});
+
+view.onLeaveQuietMode(() => {
+  if (!alignedForCurrentRun) return;
+  view.leaveQuietMode();
+});
 
 view.onCloseDirection(() => {
   stopDirectionRuntime();

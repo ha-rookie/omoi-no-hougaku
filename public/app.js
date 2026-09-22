@@ -37,6 +37,37 @@ const internalTestMode = isInternalTestMode(window.location.search);
 document.documentElement.dataset.internalTest = internalTestMode ? '1' : '0';
 setupPwaInstall();
 
+const INTERNAL_TEST_PLACES = Object.freeze({
+  honolulu: Object.freeze({
+    name: 'ホノルル',
+    latitude: 21.3069,
+    longitude: -157.8583,
+  }),
+});
+
+function setupInternalTestPlaces() {
+  if (!internalTestMode) return;
+  const panel = document.querySelector('#internal-test-panel');
+  if (!panel) return;
+
+  panel.hidden = false;
+  panel.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-test-place]');
+    if (!button || !repository) return;
+
+    const place = INTERNAL_TEST_PLACES[button.dataset.testPlace];
+    if (!place) return;
+
+    try {
+      repository.save(place);
+      loadPlaces();
+      view.setStatus(`試験用の「${place.name}」を保存しました。`, 'ok');
+    } catch (error) {
+      handleError(error);
+    }
+  });
+}
+
 const view = new AppView();
 let repository;
 let candidate = null;
@@ -365,6 +396,7 @@ view.resetQuietMode();
 try {
   repository = new PlaceRepository();
   loadPlaces();
+  setupInternalTestPlaces();
 } catch (error) {
   handleError(error);
 }

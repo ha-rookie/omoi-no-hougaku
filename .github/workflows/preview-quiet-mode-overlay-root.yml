@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - bugfix/quiet-mode-overlay-root
+      - test/preview-place-fixtures
 
 permissions:
   contents: read
@@ -19,6 +20,7 @@ jobs:
       - name: Validate quiet mode overlay
         run: |
           node --test tests/quiet-mode-overlay-root.test.mjs
+          node --test tests/internal-test-place-fixtures.test.mjs
           node --check public/app.js
       - name: Deploy public directory as Cloudflare Pages preview
         id: deploy
@@ -26,7 +28,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy public --project-name=omoi-no-hougaku --branch=bugfix-quiet-mode-overlay-root
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=preview-place-fixtures
       - name: Smoke preview
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}

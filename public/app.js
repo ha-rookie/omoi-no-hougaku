@@ -448,17 +448,7 @@ view.onSave((name) => {
   }
 });
 
-window.addEventListener('pagehide', () => {
-  stopDirectionRuntime();
-  view.resetQuietMode();
-});
-
-window.addEventListener('pageshow', (event) => {
-  if (!event.persisted) return;
-  view.resetQuietMode();
-  view.hideDirection();
-  readShareFragment();
-});
+window.addEventListener('pagehide', stopDirectionRuntime);
 
 await registerServiceWorker();
 readShareFragment();

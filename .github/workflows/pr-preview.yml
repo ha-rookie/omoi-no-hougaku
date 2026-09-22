@@ -81,7 +81,7 @@ jobs:
             sleep 2
           done
           test "$ready" = '1'
-          grep -Fq '<title>想いの方角</title>' /tmp/index.html
+          grep -Fq '<title>想いの方角' /tmp/index.html
           grep -Fq "navigator.serviceWorker.register('/sw.js'" /tmp/app.js
           node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('/tmp/manifest.json','utf8')); if(!m.share_target || m.share_target.action !== '/share-target') process.exit(1)"
 

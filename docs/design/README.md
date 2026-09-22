@@ -77,3 +77,9 @@ Design Previewは表示面であり、Repository内ファイルが正本。
 重要なUI変更では、Design PRの承認head SHAをImplementation Issueへ引き継ぐ。
 
 Assetを伴う場合は `ASSET_WORKFLOW.md` とFeature Issueの `Asset Handoff` を併用する。
+
+
+## Current visual design
+
+- `01_DIRECTION_COMPASS_MAP.md`: Direction / Compass / Map interaction and state
+- `02_VISUAL_MORNING_MIST.md`: 生成り・朝もや・青灰Accentを基準にしたVisual language

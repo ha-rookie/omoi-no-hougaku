@@ -253,7 +253,7 @@ export class AppView {
     this.document.body.classList.toggle('quiet-mode-active', active);
     this.themeColorMeta?.setAttribute(
       'content',
-      active ? '#111315' : '#f5f5f4'
+      active ? '#111315' : '#F5F2EA'
     );
   }
 

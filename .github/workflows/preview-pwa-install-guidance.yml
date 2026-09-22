@@ -26,6 +26,18 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Generate PWA icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pillow
+          python scripts/generate-pwa-icons.py
+          test -s public/assets/icons/generated/icon-192.png
+          test -s public/assets/icons/generated/icon-512.png
+          test -s public/assets/icons/generated/icon-maskable-512.png
+          test -s public/assets/icons/generated/apple-touch-icon.png
+          test -s public/assets/icons/generated/favicon-32.png
+
       - name: Validate PWA install flow
         shell: bash
         run: |
@@ -35,7 +47,7 @@ jobs:
           test -s public/manifest.webmanifest
           test -s public/sw.js
           test -s public/js/infrastructure/pwa-install.js
-          test -s public/assets/app-icon.svg
+          test -s public/assets/icons/omoi-no-hougaku-app-icon.png
           node --check public/app.js
           node --check public/js/infrastructure/pwa-install.js
           node tests/pwa-install.test.mjs

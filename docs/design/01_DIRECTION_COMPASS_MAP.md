@@ -127,7 +127,21 @@ Yohai Compassの実績ある状態遷移を引き継ぐ。
 - 「方角を見直す」で新しいGuidance Sessionを開始
 - Map表示中は自動で一致画面へ遷移しない
 
-### 4.4 Sensor fallback
+### 4.4 Quiet mode
+
+Yohai CompassのQuiet Modeを宗教固有表現なしで一般化する。
+
+- 一致画面からユーザーが「静かな画面にする」を選んだ時だけ入る
+- 一致した瞬間に自動で暗転させない
+- 全画面の暗いsurfaceへ切り替える
+- 表示は保存地点名と「この方角に、大切な場所があります。」に絞る
+- Compass、距離、地図、操作ボタンはQuiet Mode中は見せない
+- heading listenerは停止済みの状態を維持する
+- body theme-colorも暗色へ切り替える
+- 画面タップ / Enter / Spaceで一致画面へ戻る
+- Torii等の遥拝固有symbolは持ち込まない
+
+### 4.5 Sensor fallback
 
 Orientationが取得できなくても、
 
@@ -353,5 +367,7 @@ Androidでまず確認し、iPhone固有permission flowはheading adapterを変�
 - 日本中心（135°E）のWorld Mapになる
 - World Mapの表示seamで不自然な横断線を描かない
 - Compassで±5°以内に合うとheading listenerが止まり一致画面へ切り替わる
+- 一致画面からQuiet Modeへ入り、タップ/キーボードで一致画面へ戻れる
+- Quiet Modeでは暗い全画面surfaceに地点名と最小限のメッセージだけを表示する
 - Map表示中は一致画面へ自動遷移しない
 - headingが使えなくてもMapとbearing/distanceは使える

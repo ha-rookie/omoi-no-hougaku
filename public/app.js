@@ -309,6 +309,7 @@ function handleError(error) {
 }
 
 async function handleSharedPayload(payload) {
+  view.resetQuietMode();
   view.setStatus('共有された場所を確認しています…');
 
   try {
@@ -359,6 +360,8 @@ async function registerServiceWorker() {
   }
 }
 
+view.resetQuietMode();
+
 try {
   repository = new PlaceRepository();
   loadPlaces();
@@ -402,6 +405,7 @@ view.onSave((name) => {
 
   try {
     registerPlace(repository, candidate, name);
+    view.resetQuietMode();
     candidate = null;
     selectedId = null;
     view.hideCandidate();

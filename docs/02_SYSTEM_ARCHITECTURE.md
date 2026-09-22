@@ -218,3 +218,5 @@ GitHub branch
 
 - TBD-ARCH-006: Google Cloud側Quota/Alertを追加で必要とする利用量・課金条件
 - TBD-ARCH-007: Android以外でWeb Share Targetが使えない場合の正式fallback UX
+
+\n\n## Preview Fixture\n- `internal_test=1` はAnalytics識別専用とする\n- 試験地点fixtureは `preview_fixture=1` で明示し、Cloudflare Preview hostまたはlocalhostだけで有効化する\n- canonical Production `omoi-no-hougaku.pages.dev` ではfixture UIを表示しない\n

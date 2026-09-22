@@ -18,18 +18,18 @@ assert.equal(iconSizes.has('512x512'), true);
 assert.equal(
   manifest.icons.some(
     (icon) =>
-      icon.src === '/assets/app-icon.svg' &&
+      icon.src === '/assets/icons/generated/icon-192.png' &&
       icon.sizes === '192x192' &&
-      icon.type === 'image/svg+xml'
+      icon.type === 'image/png'
   ),
   true
 );
 assert.equal(
   manifest.icons.some(
     (icon) =>
-      icon.src === '/assets/app-icon.svg' &&
+      icon.src === '/assets/icons/generated/icon-512.png' &&
       icon.sizes === '512x512' &&
-      icon.type === 'image/svg+xml'
+      icon.type === 'image/png'
   ),
   true
 );
@@ -80,6 +80,17 @@ const pwaSource = fs.readFileSync(
 const html = fs.readFileSync(
   new URL('../public/index.html', import.meta.url),
   'utf8'
+);
+
+assert.equal(
+  manifest.icons.some(
+    (icon) =>
+      icon.src === '/assets/icons/generated/icon-maskable-512.png' &&
+      icon.sizes === '512x512' &&
+      icon.type === 'image/png' &&
+      icon.purpose === 'maskable'
+  ),
+  true
 );
 
 assert.match(pwaSource, /beforeinstallprompt/);

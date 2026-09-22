@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /share-target
+
+Sitemap: https://omoi-no-hougaku.pages.dev/sitemap.xml

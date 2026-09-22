@@ -1,17 +1,12 @@
-name: Deploy PoC to Cloudflare Pages
+name: Deploy MVP to Cloudflare Pages
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
-      - 'poc/google-maps-share-link/**'
+      - 'public/**'
       - 'functions/**'
-      - 'tests/**'
-      - 'docs/CLOUDFLARE_SETUP.md'
-      - 'docs/02_SYSTEM_ARCHITECTURE.md'
-      - 'docs/03_APPLICATION_ARCHITECTURE.md'
-      - 'docs/adr/**'
       - '.github/workflows/deploy-pages.yml'
 
 permissions:
@@ -23,6 +18,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -30,57 +26,85 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Validate PoC and Function files
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate MVP and Function files
         shell: bash
         run: |
           set -euo pipefail
-          test -s poc/google-maps-share-link/index.html
-          test -s poc/google-maps-share-link/server-poc-v2.html
-          test -s poc/google-maps-share-link/resolver.mjs
-          test -s poc/google-maps-share-link/share-target-poc.html
-          test -s poc/google-maps-share-link/share-location-poc.html
-          test -s poc/google-maps-share-link/share-location-resolver.mjs
-          test -s poc/google-maps-share-link/share-target-manifest.webmanifest
-          test -s poc/google-maps-share-link/sw-share-target.js
-          test -s poc/google-maps-share-link/share-target-icon.svg
-          test -s poc/google-maps-share-link/resolution-api-poc.html
-          test -s poc/google-maps-share-link/location-poc.html
-          test -s functions/api/resolve-map.js
-          test -s functions/_shared/google-maps-resolver.js
-          test -s functions/api/resolve-maps-url.js
-          test -s functions/_shared/maps-grounding-resolver.js
+
+          test -s public/index.html
+          test -s public/app.js
+          test -s public/styles.css
+          test -s public/manifest.webmanifest
+          test -s public/robots.txt
+          test -s public/sitemap.xml
+          test -s public/sw.js
+          test -s public/assets/app-icon.svg
+          test -s public/assets/backgrounds/omoi-no-hougaku-bg-morning-mist-beige.png
+          test -s public/js/ui/app-view.js
+          test -s public/js/ui/map-overview.js
+          test -s public/js/app/receive-shared-place.js
+          test -s public/js/app/register-place.js
+          test -s public/js/app/direction-session.js
+          test -s public/js/infrastructure/location-resolver-client.js
+          test -s public/js/infrastructure/place-repository.js
           test -s functions/api/resolve-location.js
+          test -s functions/_shared/maps-grounding-resolver.js
           test -s functions/_shared/places-details.js
           test -s functions/_shared/request-security.js
           test -s functions/_shared/rate-limit-service.js
-          test -s tests/request-security.test.mjs
-          test -s tests/rate-limit-service.test.mjs
-          node --check poc/google-maps-share-link/resolver.mjs
-          node --check poc/google-maps-share-link/share-location-resolver.mjs
-          node --check poc/google-maps-share-link/sw-share-target.js
-          node --check functions/api/resolve-map.js
-          node --check functions/_shared/google-maps-resolver.js
-          node --check functions/api/resolve-maps-url.js
-          node --check functions/_shared/maps-grounding-resolver.js
+
+          node --check public/app.js
+          node --check public/sw.js
+          node --check public/js/ui/app-view.js
+          node --check public/js/ui/map-overview.js
+          node --check public/js/app/receive-shared-place.js
+          node --check public/js/app/register-place.js
+          node --check public/js/app/direction-session.js
+          node --check public/js/infrastructure/location-resolver-client.js
+          node --check public/js/infrastructure/place-repository.js
           node --check functions/api/resolve-location.js
+          node --check functions/_shared/maps-grounding-resolver.js
           node --check functions/_shared/places-details.js
           node --check functions/_shared/request-security.js
           node --check functions/_shared/rate-limit-service.js
-          node --check tests/request-security.test.mjs
-          node --check tests/rate-limit-service.test.mjs
-          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('poc/google-maps-share-link/share-target-manifest.webmanifest','utf8')); if(!m.share_target || m.share_target.method !== 'POST') process.exit(1)"
 
-      - name: Run resolver tests
+          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('public/manifest.webmanifest','utf8')); if(!m.share_target || m.share_target.method !== 'POST' || m.share_target.action !== '/share-target') process.exit(1)"
+          grep -Fq "navigator.serviceWorker.register('/sw.js'" public/app.js
+          grep -Fq "requestUrl.pathname === '/share-target'" public/sw.js
+          grep -Fq 'omoi-no-hougaku-bg-morning-mist-beige.png' public/styles.css
+          grep -Fq '<link rel="canonical" href="https://omoi-no-hougaku.pages.dev/">' public/index.html
+          grep -Fq 'Sitemap: https://omoi-no-hougaku.pages.dev/sitemap.xml' public/robots.txt
+          grep -Fq '<loc>https://omoi-no-hougaku.pages.dev/</loc>' public/sitemap.xml
+
+          if grep -R -E "from ['\"][^'\"]*poc/|import\(['\"][^'\"]*poc/" public --include='*.js'; then
+            echo 'Production code must not import from poc/.'
+            exit 1
+          fi
+
+      - name: Run production regression tests
         shell: bash
         run: |
           set -euo pipefail
-          node poc/google-maps-share-link/resolver.test.mjs
-          node tests/google-maps-server-resolver.test.mjs
+
           node tests/maps-grounding-resolver.test.mjs
           node tests/places-details.test.mjs
-          node tests/share-location-resolver.test.mjs
           node tests/request-security.test.mjs
           node tests/rate-limit-service.test.mjs
+          node tests/shared-location.test.mjs
+          node tests/receive-shared-place.test.mjs
+          node tests/place-repository.test.mjs
+          node tests/location-resolver-client.test.mjs
+          node tests/direction-core.test.mjs
+          node tests/direction-session.test.mjs
+          node --test tests/heading-provider.test.mjs
+          node --test tests/wmm2025-runtime.test.mjs
+          node tests/map-geometry.test.mjs
+          node tests/alignment-transition.test.mjs
 
       - name: Configure and verify Pages rate limiter service binding
         env:
@@ -99,7 +123,7 @@ jobs:
       - name: Write Pages build marker
         shell: bash
         run: |
-          printf '{"buildSha":"%s"}\n' "$GITHUB_SHA" > poc/google-maps-share-link/build.json
+          printf '{"buildSha":"%s"}\n' "$GITHUB_SHA" > public/build.json
 
       - name: Deploy to Cloudflare Pages
         id: deploy
@@ -114,9 +138,9 @@ jobs:
             test -n "$MAPS_GROUNDING_API_KEY"
             printf '%s' "$MAPS_GROUNDING_API_KEY" | npx wrangler pages secret put MAPS_GROUNDING_API_KEY --project-name=omoi-no-hougaku
             npx wrangler pages project create omoi-no-hougaku --production-branch main || true
-          command: pages deploy poc/google-maps-share-link --project-name=omoi-no-hougaku --branch=main --commit-dirty=true
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=main --commit-hash=${{ github.sha }} --commit-dirty=true
 
-      - name: Deployment smoke test
+      - name: Production smoke test
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
           BASE_URL: https://omoi-no-hougaku.pages.dev
@@ -143,20 +167,6 @@ jobs:
               -H 'content-type: application/json' \
               --data '{}')" || no_origin_status="000"
 
-            api_status="$(curl -sS -o /tmp/api.json -w '%{http_code}' \
-              -X POST "$BASE_URL/api/resolve-map" \
-              -H 'content-type: application/json' \
-              -H "Origin: $ORIGIN" \
-              -H 'Sec-Fetch-Site: same-origin' \
-              --data '{}')" || api_status="000"
-
-            grounding_status="$(curl -sS -o /tmp/grounding-api.json -w '%{http_code}' \
-              -X POST "$BASE_URL/api/resolve-maps-url" \
-              -H 'content-type: application/json' \
-              -H "Origin: $ORIGIN" \
-              -H 'Sec-Fetch-Site: same-origin' \
-              --data '{}')" || grounding_status="000"
-
             location_status="$(curl -sS -o /tmp/location-api.json -w '%{http_code}' \
               -X POST "$BASE_URL/api/resolve-location" \
               -H 'content-type: application/json' \
@@ -172,20 +182,50 @@ jobs:
             fi
 
             root_ok=0
-            if curl -fsS "$BASE_URL/" -o /tmp/index.html && grep -q 'Google Maps' /tmp/index.html; then
+            manifest_ok=0
+            sw_ok=0
+            background_ok=0
+            robots_ok=0
+            sitemap_ok=0
+
+            if curl -fsS "$BASE_URL/" -o /tmp/index.html && grep -Fq '想いの方角' /tmp/index.html; then
               root_ok=1
             fi
 
-            echo "status: build=$build_ok root=$root_ok no-origin=$no_origin_status resolve-map=$api_status resolve-maps-url=$grounding_status resolve-location=$location_status"
+            if curl -fsS "$BASE_URL/manifest.webmanifest" -o /tmp/manifest.json \
+              && node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('/tmp/manifest.json','utf8')); if(!m.share_target || m.share_target.action !== '/share-target' || m.share_target.method !== 'POST') process.exit(1)"; then
+              manifest_ok=1
+            fi
+
+            if curl -fsS "$BASE_URL/sw.js" -o /tmp/sw.js && grep -Fq "/share-target" /tmp/sw.js; then
+              sw_ok=1
+            fi
+
+            if curl -fsS "$BASE_URL/assets/backgrounds/omoi-no-hougaku-bg-morning-mist-beige.png" -o /tmp/background.png && test -s /tmp/background.png; then
+              background_ok=1
+            fi
+
+            if curl -fsS "$BASE_URL/robots.txt" -o /tmp/robots.txt \
+              && grep -Fq 'Sitemap: https://omoi-no-hougaku.pages.dev/sitemap.xml' /tmp/robots.txt; then
+              robots_ok=1
+            fi
+
+            if curl -fsS "$BASE_URL/sitemap.xml" -o /tmp/sitemap.xml \
+              && grep -Fq '<loc>https://omoi-no-hougaku.pages.dev/</loc>' /tmp/sitemap.xml; then
+              sitemap_ok=1
+            fi
+
+            echo "status: build=$build_ok root=$root_ok manifest=$manifest_ok sw=$sw_ok background=$background_ok robots=$robots_ok sitemap=$sitemap_ok no-origin=$no_origin_status resolve-location=$location_status"
 
             if [ "$build_ok" = '1' ] \
               && [ "$root_ok" = '1' ] \
+              && [ "$manifest_ok" = '1' ] \
+              && [ "$sw_ok" = '1' ] \
+              && [ "$background_ok" = '1' ] \
+              && [ "$robots_ok" = '1' ] \
+              && [ "$sitemap_ok" = '1' ] \
               && [ "$no_origin_status" = '403' ] \
               && grep -q 'ORIGIN_REQUIRED' /tmp/no-origin.json \
-              && [ "$api_status" = '400' ] \
-              && grep -q 'URL_REQUIRED' /tmp/api.json \
-              && [ "$grounding_status" = '400' ] \
-              && grep -q 'URL_REQUIRED' /tmp/grounding-api.json \
               && [ "$location_status" = '400' ] \
               && grep -q 'URL_REQUIRED' /tmp/location-api.json; then
               ready=1
@@ -196,9 +236,9 @@ jobs:
           done
 
           if [ "$ready" -ne 1 ]; then
-            echo 'PoC production deployment did not become ready within 60 seconds.'
+            echo 'MVP production deployment did not become ready within 60 seconds.'
             echo 'Latest responses:'
-            for file in /tmp/build.json /tmp/index.html /tmp/no-origin.json /tmp/api.json /tmp/grounding-api.json /tmp/location-api.json; do
+            for file in /tmp/build.json /tmp/index.html /tmp/manifest.json /tmp/robots.txt /tmp/sitemap.xml /tmp/sw.js /tmp/no-origin.json /tmp/location-api.json; do
               echo "--- $file ---"
               cat "$file" 2>/dev/null || true
               echo

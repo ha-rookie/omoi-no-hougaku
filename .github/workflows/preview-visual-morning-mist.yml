@@ -1,0 +1,102 @@
+name: Preview Morning Mist visual
+
+on:
+  push:
+    branches:
+      - visual/morning-mist-palette
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-morning-mist-visual
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate visual source
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s public/index.html
+          test -s public/styles.css
+          test -s public/manifest.webmanifest
+          test -s docs/design/02_VISUAL_MORNING_MIST.md
+
+          node --check public/app.js
+          node --check public/js/ui/app-view.js
+          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('public/manifest.webmanifest','utf8')); if(m.background_color !== '#F5F2EA' || m.theme_color !== '#F5F2EA') process.exit(1)"
+
+          grep -Fq -- '--omoi-bg: #f5f2ea' public/styles.css
+          grep -Fq -- '--omoi-card: #fbf9f4' public/styles.css
+          grep -Fq -- '--omoi-text: #343532' public/styles.css
+          grep -Fq -- '--omoi-accent: #556468' public/styles.css
+          grep -Fq -- '--omoi-delete: #a35a52' public/styles.css
+
+          if grep -Fq 'id="start-direction"' public/index.html; then
+            echo 'Old extra Direction start button must not return.'
+            exit 1
+          fi
+
+      - name: Build visual preview bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/visual-preview-public
+          cp -a public /tmp/visual-preview-public
+          cp tests/manual/direction-map-preview.html /tmp/visual-preview-public/preview-test.html
+
+      - name: Deploy Visual Preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          command: pages deploy /tmp/visual-preview-public --project-name=omoi-no-hougaku --branch=visual-morning-mist-palette --commit-dirty=true
+
+      - name: Preview smoke test
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+
+          ready=0
+          for attempt in $(seq 1 20); do
+            echo "Visual Preview readiness attempt $attempt/20: $DEPLOYMENT_URL"
+
+            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/styles.css" -o /tmp/styles.css               && curl -fsS "$DEPLOYMENT_URL/manifest.webmanifest" -o /tmp/manifest.json; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo 'Visual Preview did not become ready within 40 seconds.'
+            exit 1
+          fi
+
+          grep -Fq 'content="#F5F2EA"' /tmp/index.html
+          grep -Fq 'Visual theme: Morning Mist / Issue #59' /tmp/styles.css
+          grep -Fq -- '--omoi-accent: #556468' /tmp/styles.css
+          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('/tmp/manifest.json','utf8')); if(m.theme_color !== '#F5F2EA') process.exit(1)"
+
+      - name: Report preview URL
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          echo "Visual Preview URL: $DEPLOYMENT_URL"
+          echo "Visual Test Setup URL: $DEPLOYMENT_URL/preview-test.html"

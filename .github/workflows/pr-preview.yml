@@ -1,0 +1,100 @@
+name: PR Cloudflare Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'functions/**'
+      - 'tests/**'
+      - 'scripts/**'
+      - '.github/workflows/pr-preview.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Generate PWA icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pillow
+          python scripts/generate-pwa-icons.py
+          test -s public/assets/icons/generated/icon-192.png
+          test -s public/assets/icons/generated/icon-512.png
+
+      - name: Validate preview source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s public/index.html
+          test -s public/app.js
+          test -s public/styles.css
+          test -s public/manifest.webmanifest
+          test -s public/sw.js
+          node --check public/app.js
+          node --test tests/*.test.mjs
+
+      - name: Deploy PR Preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=pr-${{ github.event.pull_request.number }} --commit-hash=${{ github.event.pull_request.head.sha }} --commit-dirty=true
+
+      - name: Preview smoke test
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html               && curl -fsS "$DEPLOYMENT_URL/app.js" -o /tmp/app.js               && curl -fsS "$DEPLOYMENT_URL/manifest.webmanifest" -o /tmp/manifest.json; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = '1'
+          grep -Fq '<title>想いの方角' /tmp/index.html
+          grep -Fq "navigator.serviceWorker.register('/sw.js'" /tmp/app.js
+          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('/tmp/manifest.json','utf8')); if(!m.share_target || m.share_target.action !== '/share-target') process.exit(1)"
+
+      - name: Publish Preview URL
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## Cloudflare Pages Preview'
+            echo
+            echo "$DEPLOYMENT_URL"
+            echo
+            echo "Fixture test: ${DEPLOYMENT_URL%/}/?preview_fixture=1"
+          } >> "$GITHUB_STEP_SUMMARY"

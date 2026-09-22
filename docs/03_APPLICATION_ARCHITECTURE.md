@@ -263,7 +263,7 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 - User identifierは原則作らない
 - Production実機確認では `?internal_test=1` を内部テストモードとして認識する
 - 内部テスト判定はURL queryだけを使い、Cookie / localStorage / sessionStorage / fingerprintへ保存しない
-- `internal_test=1` でもStorage、地点解決、Geolocation、Orientation、方位計算、Map、UIの挙動は通常Productionと同一に保つ
+- `internal_test=1` でもStorage、地点解決、Geolocation、Orientation、方位計算、Map、UIの挙動は通常Productionと同一に保つ\n- Preview/localhostの試験地点fixtureは `preview_fixture=1` で明示的に有効化し、`internal_test=1` とは分離する。canonical Production (`omoi-no-hougaku.pages.dev`) ではfixture UIを有効化しない
 - 現時点ではAnalytics未導入のため送信抑止対象はない。将来アプリ側Analytics/custom eventを追加する場合は共通 `isInternalTestMode()` 判定を必須gateとする
 - 実機確認用URL: `https://omoi-no-hougaku.pages.dev/?internal_test=1`
 

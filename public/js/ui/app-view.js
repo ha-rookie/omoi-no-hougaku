@@ -249,6 +249,11 @@ export class AppView {
     this.enterQuietModeButton.focus({ preventScroll: true });
   }
 
+  resetQuietMode() {
+    this.setQuietModeActive(false);
+    this.quietPanel.hidden = true;
+  }
+
   setQuietModeActive(active) {
     this.document.body.classList.toggle('quiet-mode-active', active);
     this.themeColorMeta?.setAttribute(

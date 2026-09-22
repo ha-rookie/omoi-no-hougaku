@@ -115,6 +115,7 @@ export function classifySharedLocation(payload = {}) {
       kind: 'maps-url',
       sourceType: 'maps-url-api',
       mapsUrl,
+      suggestedName: title,
     };
   }
 

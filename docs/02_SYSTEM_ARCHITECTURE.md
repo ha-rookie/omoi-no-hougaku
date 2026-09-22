@@ -70,6 +70,8 @@ GitHub
 - Production/Previewとも地点URL、地点名、Place ID、座標をApplication logへ出さない
 - Google API keyはRepository・HTML・Browser JavaScriptへ配置しない
 - 環境差分の具体設定は `CLOUDFLARE_SETUP.md` に分離する
+- 同一Repository内のPull Requestは共通PR Preview workflowでCloudflare Pages Previewへdeployし、Production deployとは分離する
+- fork由来PRはRepository Secretsを使用するPreview deploy対象外とし、validationのみで扱う
 
 ## 5. Runtime Data Flow
 

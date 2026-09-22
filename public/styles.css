@@ -1329,6 +1329,18 @@ body.quiet-mode-active {
   .direction-compass {
     width: min(82vw, 318px);
   }
+
+  .status {
+    font-size: .94rem;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+  }
+
+  .install-guidance-title,
+  .install-guidance .muted {
+    line-break: strict;
+    overflow-wrap: anywhere;
+  }
 }
 
 @media (prefers-reduced-transparency: reduce) {

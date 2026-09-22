@@ -79,10 +79,13 @@ system sans-serifを使う。
 ## 5. Card
 
 - Card colorはpure whiteを使わず `#FBF9F4`
-- 1px border
-- shadowは非常に弱くする
+- section Cardの1px borderは背景との境界が分かる最小限の低コントラストにする
+- shadowはほぼ感じない強さに抑える
 - radiusは18〜22px
 - Card間の余白を十分取る
+- Card内にCardが重なる場合は、内側surfaceの輪郭をさらに弱くして「枠の中に枠」が目立たないようにする
+- 保存地点の通常行は淡いsurfaceで区切り、選択中は全面の強いborderではなく左側Accent + 淡いtintを主な選択表現にする
+- metric等の補助surfaceもsection Cardより弱い境界にする
 
 ## 6. Navigation / flow
 
@@ -119,7 +122,8 @@ Pill shapeは維持するが、影を強くしない。
 - target-up reference frameは変更しない
 - 外周 / tickは細く淡くする
 - NeedleはAccent
-- Target markerはText/Accentの中間
+- Target markerは外周上のdotだけで示す
+- Compass内に「目的地」text labelは置かない。目標方位はCompass上部のprimary textで示し、方位文字との重なりを避ける
 - 方角文字はText
 - pure blackを主要色にしない
 

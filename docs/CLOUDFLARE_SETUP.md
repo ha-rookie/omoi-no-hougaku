@@ -28,8 +28,8 @@ Issue #61でProduction deploy pipelineをPoCからMVP本体へ切り替える。
 - [x] main以外からの`workflow_dispatch`によるProduction deployをjob guardで禁止
 - [x] PR #60のVisual Previewで同一`public/` UIをスマホ確認済み
 - [ ] Issue #61 merge後にProduction deploy / smoke成功を確認
-- [ ] Google API keyのAPI制限がMaps Grounding Lite + Places API (New)に限定されていることを確認
-- [ ] Google Cloudの利用量・課金状態・予算アラートを確認
+- [x] Google API keyはMaps Grounding Lite + Places API (New)だけにAPI制限する方針を確認済み
+- [x] Google Cloud側のQuota編集/課金停止をrelease gateにしない。現在の利用条件ではQuota編集が利用できず、Budget Alertもhard stopではないため、Google API到達前のCloudflare Rate Limiter Workerを実効的な自動制限として採用済み
 - [x] API abuse対策は専用Cloudflare Worker + Rate Limiting binding方式に決定（ADR-0005）
 - [x] Rate Limiter WorkerをProductionへDeploy（Worker version `0106d89a-c32e-48e0-a298-394b2730b4cf`）
 - [x] GitHub ActionsからPages productionへService binding `RATE_LIMITER_SERVICE` を自動設定

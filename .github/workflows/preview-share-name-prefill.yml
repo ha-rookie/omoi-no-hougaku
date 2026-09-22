@@ -1,0 +1,74 @@
+name: Preview Google Maps share name
+
+on:
+  push:
+    branches:
+      - bugfix/share-name-prefill-v2
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-share-name-prefill
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate share-name flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check public/app.js
+          node --check public/js/core/shared-location.js
+          node --check public/js/app/receive-shared-place.js
+          node --check public/js/ui/app-view.js
+          node tests/shared-location.test.mjs
+          node tests/receive-shared-place.test.mjs
+
+      - name: Deploy public directory as Cloudflare Pages preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=bugfix-share-name-prefill-v2 --commit-dirty=true
+
+      - name: Preview smoke test
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+
+          ready=0
+          for attempt in $(seq 1 20); do
+            if curl -fsS "$DEPLOYMENT_URL/js/core/shared-location.js" -o /tmp/shared-location.js \
+              && curl -fsS "$DEPLOYMENT_URL/js/app/receive-shared-place.js" -o /tmp/receive-shared-place.js \
+              && curl -fsS "$DEPLOYMENT_URL/js/ui/app-view.js" -o /tmp/app-view.js; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+
+          test "$ready" -eq 1
+          grep -Fq 'suggestedName: title' /tmp/shared-location.js
+          grep -Fq "suggestedName: classified.suggestedName ?? ''" /tmp/receive-shared-place.js
+          grep -Fq "this.nameInput.value = candidate.suggestedName ?? ''" /tmp/app-view.js
+
+      - name: Report preview URL
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          echo "Preview URL: $DEPLOYMENT_URL"

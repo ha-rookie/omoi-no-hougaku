@@ -161,6 +161,9 @@ export class AppView {
   }
 
   showDirectionLoading(place) {
+    this.setQuietModeActive(false);
+    this.quietPanel.hidden = true;
+    this.alignedPanel.hidden = true;
     this.directionPanel.hidden = false;
     this.directionTargetName.textContent = place?.name ?? '目的地';
     this.directionStatus.textContent = '現在地を確認しています…';
@@ -215,6 +218,8 @@ export class AppView {
 
   showAligned(session) {
     const bearing = session.targetBearing;
+    this.setQuietModeActive(false);
+    this.quietPanel.hidden = true;
     this.directionContent.hidden = true;
     this.directionStatus.hidden = true;
     this.alignedPanel.hidden = false;

@@ -140,7 +140,9 @@ Issue #57:
 - live needleを止め、通常Guidanceから一致専用画面へ切り替える
 - Map表示中は自動で一致画面へ遷移しない
 - 「方角を見直す」で新しいGuidance Sessionを開始する
+- 一致画面から「静かな画面にする」で全画面Quiet Modeへ入り、地点名と最小限のメッセージだけを表示する
+- Quiet Modeはタップ / Enter / Spaceで一致画面へ戻る
 - World Mapの中央経度を135°Eへ変更する
 - World Mapの表示seamは約45°Wへ移し、日本→ハワイのgreat-circleを分断しない
 
-人間確認はこの2つの変更境界だけを対象にする。
+人間確認は「一致→静止→一致画面→Quiet Mode」と、日本中心World Mapの2系統の変更境界だけを対象にする。

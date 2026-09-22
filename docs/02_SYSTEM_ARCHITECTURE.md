@@ -184,6 +184,9 @@ GitHub branch
 
 - Cloudflare Web Analytics: 導入可否は別Issueで判断
 - Application eventsを導入する場合も、地点名・緯度経度・共有URL・Place IDを送らない
+- Production実機確認では `?internal_test=1` を共通内部テストモードとして扱い、将来導入するアプリ側Analytics/custom eventを送信対象外にする
+- 内部テスト判定はURL queryのみ。Cookie / localStorage / sessionStorage / fingerprintへ保持しない
+- 内部テストモードはAnalytics送信可否以外のRuntime挙動を変えない
 - Pages Function logsはerror code/categoryまで。入力URLや座標をconsole出力しない
 - Google Cloud側でAPI利用量・課金状態を確認する
 - Deployment history: GitHub / Cloudflare

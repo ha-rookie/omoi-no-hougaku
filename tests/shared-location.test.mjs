@@ -47,7 +47,6 @@ assert.deepEqual(
     kind: 'maps-url',
     sourceType: 'maps-url-api',
     mapsUrl: 'https://maps.app.goo.gl/AbCdEf123',
-    suggestedName: '施設名',
   }
 );
 

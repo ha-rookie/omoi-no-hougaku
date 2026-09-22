@@ -1,0 +1,104 @@
+name: Preview PWA install guidance
+
+on:
+  push:
+    branches:
+      - bugfix/pwa-install-guidance
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-pwa-install-guidance
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Generate PWA icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pillow
+          python scripts/generate-pwa-icons.py
+          test -s public/assets/icons/generated/icon-192.png
+          test -s public/assets/icons/generated/icon-512.png
+          test -s public/assets/icons/generated/icon-maskable-512.png
+          test -s public/assets/icons/generated/apple-touch-icon.png
+          test -s public/assets/icons/generated/favicon-32.png
+
+      - name: Validate PWA install flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s public/index.html
+          test -s public/app.js
+          test -s public/manifest.webmanifest
+          test -s public/sw.js
+          test -s public/js/infrastructure/pwa-install.js
+          test -s public/assets/icons/omoi-no-hougaku-app-icon.png
+          node --check public/app.js
+          node --check public/js/infrastructure/pwa-install.js
+          node tests/pwa-install.test.mjs
+
+      - name: Deploy public directory as Cloudflare Pages preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: latest
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=bugfix-pwa-install-guidance --commit-dirty=true
+
+      - name: Preview smoke test
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+
+          ready=0
+          for attempt in $(seq 1 20); do
+            echo "Preview readiness attempt $attempt/20: $DEPLOYMENT_URL"
+
+            if curl -fsS "$DEPLOYMENT_URL/" -o /tmp/index.html \
+              && curl -fsS "$DEPLOYMENT_URL/manifest.webmanifest" -o /tmp/manifest.webmanifest \
+              && curl -fsS "$DEPLOYMENT_URL/js/infrastructure/pwa-install.js" -o /tmp/pwa-install.js; then
+              ready=1
+              break
+            fi
+
+            sleep 2
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo 'Preview did not become ready within 40 seconds.'
+            exit 1
+          fi
+
+          grep -Fq 'id="pwa-install-panel"' /tmp/index.html
+          grep -Fq 'id="pwa-install-button"' /tmp/index.html
+          grep -Fq '"sizes": "192x192"' /tmp/manifest.webmanifest
+          grep -Fq '"sizes": "512x512"' /tmp/manifest.webmanifest
+          grep -Fq 'beforeinstallprompt' /tmp/pwa-install.js
+
+      - name: Report preview URL
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYMENT_URL"
+          echo "Preview URL: $DEPLOYMENT_URL"

@@ -1040,6 +1040,28 @@ input[type="text"]::placeholder {
   background: rgba(245, 242, 234, .6);
 }
 
+.install-guidance {
+  margin: 16px 0 6px;
+  padding: 14px 0 4px;
+  border-top: 1px solid rgba(177, 173, 163, .24);
+}
+
+.install-guidance-title {
+  margin: 0 0 6px;
+  color: var(--omoi-text);
+  font-weight: 600;
+  line-height: 1.65;
+}
+
+.install-guidance .muted {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.install-guidance .actions {
+  margin-top: 10px;
+}
+
 .status.ok {
   color: var(--omoi-accent);
 }

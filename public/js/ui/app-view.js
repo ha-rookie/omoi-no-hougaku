@@ -75,11 +75,8 @@ export class AppView {
       candidate.sourceType === 'shared-title-coordinate'
         ? '任意ピンの位置を受け取りました。外部APIは使っていません。'
         : 'Google Mapsの共有から場所を確認しました。';
-    this.nameInput.value =
-      typeof candidate.suggestedName === 'string'
-        ? candidate.suggestedName.slice(0, MAX_PLACE_NAME_LENGTH)
-        : '';
-    this.nameInput.select();
+    this.nameInput.value = '';
+    this.nameInput.focus();
   }
 
   hideCandidate() {

@@ -24,6 +24,18 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Generate PWA icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pillow
+          python scripts/generate-pwa-icons.py
+          test -s public/assets/icons/generated/icon-192.png
+          test -s public/assets/icons/generated/icon-512.png
+          test -s public/assets/icons/generated/icon-maskable-512.png
+          test -s public/assets/icons/generated/apple-touch-icon.png
+          test -s public/assets/icons/generated/favicon-32.png
+
       - name: Validate syntax
         shell: bash
         run: |
@@ -49,7 +61,7 @@ jobs:
           test -s public/styles.css
           test -s public/manifest.webmanifest
           test -s public/sw.js
-          test -s public/assets/app-icon.svg
+          test -s public/assets/icons/omoi-no-hougaku-app-icon.png
           test -s public/js/core/shared-location.js
           test -s public/js/core/bearing-engine.js
           test -s public/js/core/heading-normalizer.js
@@ -61,6 +73,7 @@ jobs:
           test -s public/js/infrastructure/heading-provider.js
           test -s public/js/infrastructure/declination-provider.js
           test -s public/js/infrastructure/internal-test-mode.js
+          test -s public/js/infrastructure/pwa-install.js
           test -s public/js/vendor/geomagnetism-wmm2025.js
           test -s public/data/wmm-2025.json
           test -s public/licenses/geomagnetism-0.2.0-LICENSE.txt
@@ -90,6 +103,7 @@ jobs:
           node --check public/js/infrastructure/heading-provider.js
           node --check public/js/infrastructure/declination-provider.js
           node --check public/js/infrastructure/internal-test-mode.js
+          node --check public/js/infrastructure/pwa-install.js
           node --check public/js/vendor/geomagnetism-wmm2025.js
           node --check public/js/app/receive-shared-place.js
           node --check public/js/app/register-place.js
@@ -154,3 +168,4 @@ jobs:
           node tests/map-geometry.test.mjs
           node tests/alignment-transition.test.mjs
           node tests/internal-test-mode.test.mjs
+          node tests/pwa-install.test.mjs

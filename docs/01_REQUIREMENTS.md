@@ -42,8 +42,8 @@
 | REQ-008 | Google Mapsを外部で開ける | Should | 地点探索のためGoogle Mapsへ遷移できる | Planned |
 | REQ-009 | Androidを主対象としてPWAとしてインストールできる | Must | manifest/service workerが有効で、インストール済みアプリとして起動できる | Active |
 | REQ-010 | Google Mapsから共有先として直接受け取れる | Must | Android Google Mapsの共有先に表示され、共有title/text/urlをWeb Share Targetで受信できる | Active |
-| REQ-012 | Google Mapsの名称付き施設を共有したとき、共有titleを保存名の初期値として引き継げる | Must | 名称付き施設では入力欄へ共有titleを初期表示し、ユーザーが編集して保存できる。座標title/generic pin titleは初期名に使わない | Active |
 | REQ-011 | Direction画面でコンパスと地図を切り替えて現在地と目的地の関係を確認できる | Must | 国内2点は日本地図、海外を含む場合は世界地図を表示し、現在地・目的地・北・距離・目標方位を確認できる | Active |
+| REQ-013 | Google Maps共有を使う前にPWAインストール方法を案内できる | Must | 未インストール時はホーム画面追加が必要と分かり、Android/Chromiumでinstallableならアプリ内CTAからnative install promptを開ける。standalone時は案内しない | Active |
 
 ## 6. 非機能要件
 

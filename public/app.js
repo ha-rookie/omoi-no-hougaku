@@ -29,11 +29,16 @@ import {
 } from './js/infrastructure/heading-provider.js';
 import { getMagneticDeclination } from './js/infrastructure/declination-provider.js';
 import { isInternalTestMode } from './js/infrastructure/internal-test-mode.js';
+import { isPreviewFixtureMode } from './js/infrastructure/preview-fixture-mode.js';
 import { setupPwaInstall } from './js/infrastructure/pwa-install.js';
 import { renderMapOverview } from './js/ui/map-overview.js';
 import { AppView } from './js/ui/app-view.js';
 
 const internalTestMode = isInternalTestMode(window.location.search);
+const previewFixtureMode = isPreviewFixtureMode({
+  search: window.location.search,
+  hostname: window.location.hostname,
+});
 document.documentElement.dataset.internalTest = internalTestMode ? '1' : '0';
 setupPwaInstall();
 
@@ -46,7 +51,7 @@ const INTERNAL_TEST_PLACES = Object.freeze({
 });
 
 function setupInternalTestPlaces() {
-  if (!internalTestMode) return;
+  if (!previewFixtureMode) return;
   const panel = document.querySelector('#internal-test-panel');
   if (!panel) return;
 

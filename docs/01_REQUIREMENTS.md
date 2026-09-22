@@ -61,7 +61,7 @@
 | NFR-010 | Privacy | 任意ピンの共有titleが有効な緯度経度なら外部APIへ送信せず端末内で確定する | Network review / unit test |
 | NFR-011 | Security | Google API keyをブラウザへ露出させずCloudflare Secretで管理する | Build/source review / runtime review |
 | NFR-012 | Privacy | Direction地図のために現在地・目的地を外部Map providerへ送信しない | Network review / static asset review |
-| NFR-013 | Observability | Production実機確認では `?internal_test=1` を内部テストモードとして認識し、将来導入するアプリ側Analytics/custom eventを本番利用統計へ混ぜない。内部テスト判定はURL queryだけを使い、Core機能は変えない | Unit test / Production URL確認 |
+| NFR-013 | Observability | Production実機確認では `?internal_test=1` を内部テストモードとして認識し、将来導入するアプリ側Analytics/custom eventを本番利用統計へ混ぜない。内部テスト判定はURL queryだけを使い、Core機能は変えない | Unit test / Production URL確認 |\n| NFR-014 | Testability | Preview/localhostでは明示的な `preview_fixture=1` 指定時だけ試験地点fixture UIを利用でき、canonical Productionでは同queryを指定しても表示・保存動作を有効化しない | Unit test / Preview確認 / Production hostname確認 |
 
 ## 7. データ・外部情報要件
 

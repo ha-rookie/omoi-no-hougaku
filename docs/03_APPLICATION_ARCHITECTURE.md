@@ -248,7 +248,7 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 - Android/Chromiumでは `beforeinstallprompt` を捕捉し、Install CTAからnative promptを起動する
 - `display-mode: standalone` またはiOS standalone時はInstall UIを表示しない
 - `beforeinstallprompt` 非対応環境ではブラウザメニュー/ホーム画面追加のmanual guidanceへ縮退する
-- ManifestはChromium installability向けに192x192 / 512x512 icon descriptorを持つ。Approved `app-icon.svg` のvisual designは変更しない
+- 正式原本は `public/assets/icons/omoi-no-hougaku-app-icon.png`。`scripts/generate-pwa-icons.py` で192x192 / 512x512 / maskable / Apple Touch / faviconを生成して配信する。生成物を手編集しない
 - Service Worker: share target POST受信とApp shellの必要最小処理を担当
 - Share Target POSTはService Workerで受け、共有本文をURL queryへ載せない
 - Cache対象: App shell / static assets / WMM assets / map vector assetsを候補とする

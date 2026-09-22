@@ -144,6 +144,23 @@
 
     </section>
 
+    <div
+      id="quiet-panel"
+      class="quiet-mode-panel"
+      role="button"
+      tabindex="0"
+      aria-label="静かな画面。タップすると方角一致画面へ戻ります"
+      hidden
+    >
+      <div class="quiet-mode-glow" aria-hidden="true"></div>
+      <div class="quiet-mode-content">
+        <div class="quiet-mode-mark" aria-hidden="true"><span></span></div>
+        <p id="quiet-target-name" class="quiet-mode-target"></p>
+        <div class="quiet-mode-rule" aria-hidden="true"><span></span></div>
+        <p class="quiet-mode-message">この方角に、<br>大切な場所があります。</p>
+        <p class="quiet-mode-exit-hint">画面をタップすると戻ります</p>
+      </div>
+    </div>
 
     <section class="card" aria-labelledby="add-heading">
       <h2 id="add-heading">場所を追加</h2>

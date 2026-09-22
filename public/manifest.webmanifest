@@ -1,7 +1,7 @@
 {
   "name": "想いの方角",
   "short_name": "想いの方角",
-  "description": "大切な人や場所の方角を、静かに向くためのWebアプリ",
+  "description": "保存した大切な場所が、今いる場所からどの方角にあるかをコンパスと地図で確認できるWebアプリ",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

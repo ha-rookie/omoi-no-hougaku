@@ -19,15 +19,20 @@
 
 ### MVP本番移行時
 
-- [ ] Output Directoryを`public/`へ変更
-- [ ] `public/manifest.webmanifest` / `public/sw.js`をDeploy対象化
-- [x] `/api/resolve-location`のProduction smoke testを維持（run 35620925277で成功）
-- [ ] Preview DeployでSecret/API呼出をどう扱うか確認
+Issue #61でProduction deploy pipelineをPoCからMVP本体へ切り替える。
+
+- [x] Deploy workflowのOutput Directoryを`public/`へ変更
+- [x] `public/manifest.webmanifest` / `public/sw.js` / 承認済み背景AssetをDeploy対象化
+- [x] `/api/resolve-location`のProduction smoke testを維持
+- [x] build markerを`public/build.json`へ出力し、Production main SHAとの一致をsmoke testする
+- [x] main以外からの`workflow_dispatch`によるProduction deployをjob guardで禁止
+- [x] PR #60のVisual Previewで同一`public/` UIをスマホ確認済み
+- [ ] Issue #61 merge後にProduction deploy / smoke成功を確認
 - [ ] Google API keyのAPI制限がMaps Grounding Lite + Places API (New)に限定されていることを確認
 - [ ] Google Cloudの利用量・課金状態・予算アラートを確認
 - [x] API abuse対策は専用Cloudflare Worker + Rate Limiting binding方式に決定（ADR-0005）
 - [x] Rate Limiter WorkerをProductionへDeploy（Worker version `0106d89a-c32e-48e0-a298-394b2730b4cf`）
-- [x] GitHub ActionsからPages productionへService binding `RATE_LIMITER_SERVICE` を自動設定（run 35620925277で成功）
+- [x] GitHub ActionsからPages productionへService binding `RATE_LIMITER_SERVICE` を自動設定
 - [ ] SEO/robots/Preview noindexを本番方針に合わせる
 
 ## 2. Deploy方式
@@ -47,7 +52,7 @@ Workflowは `.github/workflows/deploy-pages.yml` を正とする。
 
 Rate Limiter Workerは `.github/workflows/deploy-rate-limiter.yml` で別Deployする。Workerを先にDeployし、その後 `.github/workflows/deploy-pages.yml` がCloudflare Pages Project APIでproduction Service bindingを追加・確認してからPagesをDeployする。Cloudflare Dashboardでの手動binding設定は不要とする。
 
-PoC完了後のMVP本体ではDeploy directoryを`public/`へ変更する。変更は本番Implementation Issue内でWorkflow、smoke test、rollback手順を同時更新する。
+Issue #61でMVP本体のDeploy directoryを`public/`へ変更する。Cloudflare公式Direct Upload仕様に従い、Repository rootから`wrangler pages deploy public`を実行することで、rootの`functions/`もPages Functionsとして同時Deployする。Workflow、smoke test、rollback確認を同一Release変更として扱う。
 
 ## 3. Runtime Secret
 
@@ -110,8 +115,8 @@ MVP本番で必要なEndpoint:
 
 ## 5. Environment Separation
 
-- Production: `main`
-- Preview: PR単位でMVP導入時に有効化する
+- Production: `main`。Issue #61以降は`public/` + `functions/`をGitHub Actions / WranglerでDeploy
+- Preview: PR単位。UIのVisual PreviewではProduction localStorageと分離したbranch originを使う
 - Production/Previewはoriginが異なるためlocalStorageを共有しない
 - PreviewからProductionの地点データへアクセスしない
 - PreviewでGoogle APIを呼ぶ場合もProductionと同じPrivacy/Security条件を守る

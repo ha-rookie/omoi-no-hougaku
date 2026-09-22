@@ -149,7 +149,22 @@ Public化手順は `PUBLIC_RELEASE_CHECKLIST.md` を正とする。
 
 ## 7. Domain・SEO
 
-PoCは技術検証用。MVP本番化IssueでHTTPS、canonical、title、description、OGP、favicon、robots.txt、sitemap.xml、Preview noindexを確認する。
+Issue #61でMVP Production公開時の最小SEOを確定する。
+
+- Production URL: `https://omoi-no-hougaku.pages.dev/`
+- `rel=canonical`: Production URLを指定
+- title / description: アプリ用途が分かる説明へ更新
+- robots: Productionはindex可能。APIとWeb Share Target routeはcrawl対象外
+- sitemap: root URLのみを`public/sitemap.xml`へ掲載
+- favicon: `public/assets/app-icon.svg`
+- OGP/Twitter: title / description / canonical URLを指定。専用OGP画像は別Issueで扱い、Production切替をブロックしない
+- Preview: Cloudflare PagesがPreview deploymentへ既定で `X-Robots-Tag: noindex` を付与するため、その標準挙動を利用する
+- GSC: Production公開後にsitemapを登録し、URL検査でcanonical/index状態を確認する
+
+一次情報:
+- Google canonical: https://developers.google.com/search/docs/crawling-indexing/canonicalization
+- Google robots.txt: https://developers.google.com/crawling/docs/robots-txt/robots-txt-spec
+- Cloudflare Pages Preview noindex: https://developers.cloudflare.com/pages/configuration/preview-deployments/
 
 地点名・座標等のlocal-onlyデータをmetadataへ出さない。
 

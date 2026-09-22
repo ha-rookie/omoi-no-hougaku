@@ -1,0 +1,36 @@
+name: Preview quiet mode overlay root
+
+on:
+  push:
+    branches:
+      - bugfix/quiet-mode-overlay-root
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate quiet mode overlay
+        run: |
+          node --test tests/quiet-mode-overlay-root.test.mjs
+          node --check public/app.js
+      - name: Deploy public directory as Cloudflare Pages preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy public --project-name=omoi-no-hougaku --branch=bugfix-quiet-mode-overlay-root
+      - name: Smoke preview
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          test -n "$DEPLOYMENT_URL"
+          curl --fail --silent --show-error "$DEPLOYMENT_URL/" | grep 'id="quiet-panel"'
+          echo "Preview URL: $DEPLOYMENT_URL"

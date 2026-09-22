@@ -41,6 +41,7 @@ ACTIVE / NEW相当の要件をDEFERRED/REMOVEDへ変える場合はIssue/PRに�
 | NFR-010 | 任意ピンは外部APIへ送らず端末内で確定 | ARCH-005, APP-020, APP-021 | ADR-0004 | #25 #29 #31 | `classifySharedLocation` + `receiveSharedPlace` | `receive-shared-place.test.mjs`でresolver未呼出確認 + Android実機 | ACTIVE |
 | NFR-011 | Google API keyをBrowserへ露出しない | ARCH-006, ARCH-016, APP §13 | ADR-0004 | #20 #22 #29 | Cloudflare Secret | source/runtime review | ACTIVE |
 | NFR-012 | Direction地図で現在地・目的地を外部Map providerへ送信しない | APP-037, APP-038, IF-011 | ADR-0006 | #51 #54 | same-origin Japan/World GeoJSON + native SVG renderer | static asset / source review + Preview network review | ACTIVE |
+| NFR-013 | Production内部テストを本番利用統計から分離 | APP §12 | - | #66 | `public/js/infrastructure/internal-test-mode.js`, `public/app.js` runtime marker | `internal-test-mode.test.mjs` + Production URL確認 | ACTIVE |
 
 ## 4. 地点登録PoCの最終判定
 

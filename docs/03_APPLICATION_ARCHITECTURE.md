@@ -256,6 +256,11 @@ MVPでは住所全文、Google検索履歴、人物属性、共有URL、Place ID
 - Custom event候補: add_attempt/add_success/add_failure、direction_open。地点情報は送らない
 - API error telemetryはerror code/categoryまで
 - User identifierは原則作らない
+- Production実機確認では `?internal_test=1` を内部テストモードとして認識する
+- 内部テスト判定はURL queryだけを使い、Cookie / localStorage / sessionStorage / fingerprintへ保存しない
+- `internal_test=1` でもStorage、地点解決、Geolocation、Orientation、方位計算、Map、UIの挙動は通常Productionと同一に保つ
+- 現時点ではAnalytics未導入のため送信抑止対象はない。将来アプリ側Analytics/custom eventを追加する場合は共通 `isInternalTestMode()` 判定を必須gateとする
+- 実機確認用URL: `https://omoi-no-hougaku.pages.dev/?internal_test=1`
 
 ## 13. Security Boundaries
 

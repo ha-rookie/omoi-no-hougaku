@@ -28,8 +28,12 @@ import {
   startHeadingUpdates,
 } from './js/infrastructure/heading-provider.js';
 import { getMagneticDeclination } from './js/infrastructure/declination-provider.js';
+import { isInternalTestMode } from './js/infrastructure/internal-test-mode.js';
 import { renderMapOverview } from './js/ui/map-overview.js';
 import { AppView } from './js/ui/app-view.js';
+
+const internalTestMode = isInternalTestMode(window.location.search);
+document.documentElement.dataset.internalTest = internalTestMode ? '1' : '0';
 
 const view = new AppView();
 let repository;

@@ -78,6 +78,7 @@ jobs:
           node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('public/manifest.webmanifest','utf8')); if(!m.share_target || m.share_target.method !== 'POST' || m.share_target.action !== '/share-target') process.exit(1)"
           grep -Fq "navigator.serviceWorker.register('/sw.js'" public/app.js
           grep -Fq "requestUrl.pathname === '/share-target'" public/sw.js
+          grep -Fq "document.documentElement.dataset.internalTest" public/app.js
           grep -Fq 'omoi-no-hougaku-bg-morning-mist-beige.png' public/styles.css
           grep -Fq '<link rel="canonical" href="https://omoi-no-hougaku.pages.dev/">' public/index.html
           grep -Fq 'Sitemap: https://omoi-no-hougaku.pages.dev/sitemap.xml' public/robots.txt

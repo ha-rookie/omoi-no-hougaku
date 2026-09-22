@@ -371,6 +371,18 @@ view.onAlignedCloseDirection(() => {
   view.hideDirection();
 });
 
+view.onEnterQuietMode(() => {
+  if (!alignedForCurrentRun || !activeDirectionSession) return;
+  stopHeadingUpdates?.();
+  stopHeadingUpdates = null;
+  view.showQuietMode(activeDirectionSession);
+});
+
+view.onLeaveQuietMode(() => {
+  if (!alignedForCurrentRun) return;
+  view.leaveQuietMode();
+});
+
 view.onCloseDirection(() => {
   stopDirectionRuntime();
   view.hideDirection();

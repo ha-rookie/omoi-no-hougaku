@@ -14,6 +14,7 @@
 - ARCH-006: 名称付き施設だけ同一origin Pages Function経由でGoogle公式APIを利用し、API keyをBrowserへ露出しない
 - ARCH-007: Android Google Maps → Web Share TargetをMVPの地点登録主導線とする
 - ARCH-008: Google API呼び出し前にCloudflare Rate Limiter Workerでabuseを抑制する
+- ARCH-009: Cloudflare Pagesの静的レスポンスへSecurity Headers baselineを付与し、Browser機能は必要最小限だけ許可する
 
 ## 3. System Context
 
@@ -165,6 +166,20 @@ GitHub branch
 - 個人情報: 登録地点・表示名はセンシティブ情報として扱いAnalyticsへ送らない
 - Logging: request body、共有URL、Place ID、地点名、座標をApplication logへ出さない
 - Cache: Resolver responseは `Cache-Control: no-store`
+
+### Security Headers
+
+Static Pages responseは `public/_headers` をSource of Truthとして次を返す。
+
+- Content-Security-Policy: default-src 'self' を基準に、script/style/image/connect/manifest/workerをsame-origin中心に限定する
+- Strict-Transport-Security: `max-age=31536000`。pages.dev運用のためincludeSubDomains/preloadは採用しない
+- X-Frame-Options: DENY
+- X-Content-Type-Options: nosniff
+- Referrer-Policy: strict-origin-when-cross-origin
+- Permissions-Policy: geolocation / accelerometer / gyroscope はself、camera / microphone等の未使用機能は無効化
+- X-Permitted-Cross-Domain-Policies: none
+
+Google API通信はPages Function側から行うためBrowser CSPの `connect-src` にGoogle API originを許可しない。CSP/Permissions-Policy変更時はAndroid実機の位置情報・端末方位・PWAを回帰確認する。
 
 ## 9. Availability / Failure Strategy
 

@@ -45,6 +45,7 @@ ACTIVE / NEW相当の要件をDEFERRED/REMOVEDへ変える場合はIssue/PRに�
 | NFR-013 | Production内部テストを本番利用統計から分離 | APP §12 | - | #66 | `public/js/infrastructure/internal-test-mode.js`, `public/app.js` runtime marker | `internal-test-mode.test.mjs` + Production URL確認 | ACTIVE |
 | NFR-014 | Preview fixtureをProductionから分離 | APP §12 | - | #86 #87 | `public/js/infrastructure/preview-fixture-mode.js`, `public/app.js` | `preview-fixture-mode.test.mjs` + Preview/Production hostname確認 | ACTIVE |
 | NFR-015 | SNS共有時のOGP Large Image Card | HTML head / Asset Workflow | - | #95 | `public/index.html`, `public/assets/ogp/omoi-no-hougaku-ogp.png` | HTML meta static review + PR Preview + SNS share debugger | ACTIVE |
+| NFR-016 | Production Security Headers baseline | ARCH-009 / Security Headers | - | #99 | `public/_headers` | Static review + PR Preview response headers + Production response smoke | ACTIVE |
 
 ## 4. 地点登録PoCの最終判定
 

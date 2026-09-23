@@ -207,6 +207,7 @@ jobs:
             robots_ok=0
             sitemap_ok=0
             ogp_ok=0
+            security_headers_ok=0
 
             if curl -fsS "$BASE_URL/" -o /tmp/index.html && grep -Fq '想いの方角' /tmp/index.html; then
               root_ok=1
@@ -243,7 +244,18 @@ jobs:
               ogp_ok=1
             fi
 
-            echo "status: build=$build_ok root=$root_ok manifest=$manifest_ok sw=$sw_ok background=$background_ok robots=$robots_ok sitemap=$sitemap_ok ogp=$ogp_ok no-origin=$no_origin_status resolve-location=$location_status"
+            if curl -fsSI "$BASE_URL/" -o /tmp/root-headers.txt \
+              && grep -Eiq '^content-security-policy: .*default-src .self.*frame-ancestors .none.*' /tmp/root-headers.txt \
+              && grep -Eiq '^strict-transport-security: max-age=31536000([[:space:]]|$)' /tmp/root-headers.txt \
+              && grep -Eiq '^x-frame-options: DENY([[:space:]]|$)' /tmp/root-headers.txt \
+              && grep -Eiq '^x-content-type-options: nosniff([[:space:]]|$)' /tmp/root-headers.txt \
+              && grep -Eiq '^referrer-policy: strict-origin-when-cross-origin([[:space:]]|$)' /tmp/root-headers.txt \
+              && grep -Eiq '^permissions-policy: .*accelerometer=\(self\).*gyroscope=\(self\).*geolocation=\(self\).*camera=\(\).*microphone=\(\).*' /tmp/root-headers.txt \
+              && grep -Eiq '^x-permitted-cross-domain-policies: none([[:space:]]|$)' /tmp/root-headers.txt; then
+              security_headers_ok=1
+            fi
+
+            echo "status: build=$build_ok root=$root_ok manifest=$manifest_ok sw=$sw_ok background=$background_ok robots=$robots_ok sitemap=$sitemap_ok ogp=$ogp_ok security_headers=$security_headers_ok no-origin=$no_origin_status resolve-location=$location_status"
 
             if [ "$build_ok" = '1' ] \
               && [ "$root_ok" = '1' ] \
@@ -253,6 +265,7 @@ jobs:
               && [ "$robots_ok" = '1' ] \
               && [ "$sitemap_ok" = '1' ] \
               && [ "$ogp_ok" = '1' ] \
+              && [ "$security_headers_ok" = '1' ] \
               && [ "$no_origin_status" = '403' ] \
               && grep -q 'ORIGIN_REQUIRED' /tmp/no-origin.json \
               && [ "$location_status" = '400' ] \
@@ -267,7 +280,7 @@ jobs:
           if [ "$ready" -ne 1 ]; then
             echo 'MVP production deployment did not become ready within 60 seconds.'
             echo 'Latest responses:'
-            for file in /tmp/build.json /tmp/index.html /tmp/manifest.json /tmp/robots.txt /tmp/sitemap.xml /tmp/sw.js /tmp/no-origin.json /tmp/location-api.json; do
+            for file in /tmp/build.json /tmp/index.html /tmp/root-headers.txt /tmp/manifest.json /tmp/robots.txt /tmp/sitemap.xml /tmp/sw.js /tmp/no-origin.json /tmp/location-api.json; do
               echo "--- $file ---"
               cat "$file" 2>/dev/null || true
               echo

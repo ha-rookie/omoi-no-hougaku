@@ -206,6 +206,7 @@ jobs:
             background_ok=0
             robots_ok=0
             sitemap_ok=0
+            ogp_ok=0
 
             if curl -fsS "$BASE_URL/" -o /tmp/index.html && grep -Fq '想いの方角' /tmp/index.html; then
               root_ok=1
@@ -234,7 +235,15 @@ jobs:
               sitemap_ok=1
             fi
 
-            echo "status: build=$build_ok root=$root_ok manifest=$manifest_ok sw=$sw_ok background=$background_ok robots=$robots_ok sitemap=$sitemap_ok no-origin=$no_origin_status resolve-location=$location_status"
+            if grep -Fq '<meta property="og:image" content="https://omoi-no-hougaku.pages.dev/assets/ogp/omoi-no-hougaku-ogp.png">' /tmp/index.html \
+              && grep -Fq '<meta name="twitter:card" content="summary_large_image">' /tmp/index.html \
+              && grep -Fq '<meta name="twitter:image" content="https://omoi-no-hougaku.pages.dev/assets/ogp/omoi-no-hougaku-ogp.png">' /tmp/index.html \
+              && curl -fsS "$BASE_URL/assets/ogp/omoi-no-hougaku-ogp.png" -o /tmp/ogp.png \
+              && test -s /tmp/ogp.png; then
+              ogp_ok=1
+            fi
+
+            echo "status: build=$build_ok root=$root_ok manifest=$manifest_ok sw=$sw_ok background=$background_ok robots=$robots_ok sitemap=$sitemap_ok ogp=$ogp_ok no-origin=$no_origin_status resolve-location=$location_status"
 
             if [ "$build_ok" = '1' ] \
               && [ "$root_ok" = '1' ] \
@@ -243,6 +252,7 @@ jobs:
               && [ "$background_ok" = '1' ] \
               && [ "$robots_ok" = '1' ] \
               && [ "$sitemap_ok" = '1' ] \
+              && [ "$ogp_ok" = '1' ] \
               && [ "$no_origin_status" = '403' ] \
               && grep -q 'ORIGIN_REQUIRED' /tmp/no-origin.json \
               && [ "$location_status" = '400' ] \

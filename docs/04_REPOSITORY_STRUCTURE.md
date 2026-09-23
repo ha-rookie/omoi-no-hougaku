@@ -59,6 +59,7 @@ MVPではbundle/build toolを必須にせず、`public/` 配下をES Modulesで�
 | `docs/adr/` | 設計判断履歴 | Source | No |
 | `public/` | 本番PWAの静的Source | Source | Yes |
 | `public/assets/` | 承認済みAsset | Source | Yes |
+| `public/assets/ogp/` | OGP用の承認済み背景素材・完成画像 | Source | Yes |
 | `public/js/core/` | 純粋ロジック。共有分類、座標検証、方位計算等 | Source | Yes |
 | `public/js/app/` | Use Case / Application orchestration | Source | Yes |
 | `public/js/infrastructure/` | localStorage、Share Target連携、Geolocation、Orientation、Resolver Client | Source | Yes |

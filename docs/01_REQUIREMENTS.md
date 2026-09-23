@@ -62,6 +62,7 @@
 | NFR-011 | Security | Google API keyをブラウザへ露出させずCloudflare Secretで管理する | Build/source review / runtime review |
 | NFR-012 | Privacy | Direction地図のために現在地・目的地を外部Map providerへ送信しない | Network review / static asset review |
 | NFR-013 | Observability | Production実機確認では `?internal_test=1` を内部テストモードとして認識し、将来導入するアプリ側Analytics/custom eventを本番利用統計へ混ぜない。内部テスト判定はURL queryだけを使い、Core機能は変えない | Unit test / Production URL確認 |\n| NFR-014 | Testability | Preview/localhostでは明示的な `preview_fixture=1` 指定時だけ試験地点fixture UIを利用でき、canonical Productionでは同queryを指定しても表示・保存動作を有効化しない | Unit test / Preview確認 / Production hostname確認 |
+| NFR-015 | Discoverability | SNS等でURL共有時に、承認済みOGP画像・タイトル・説明をLarge Image Cardとして提示できる | HTML meta static review / PR Preview / SNS share debugger |
 
 ## 7. データ・外部情報要件
 
